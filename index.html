@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BubbleBlast · 泡泡堂 Q版复刻</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: #1a1c2c;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  #wrap {
+    position: relative;
+  }
+  canvas {
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.6), 0 0 0 4px #2a2d44;
+  }
+  #tip {
+    color: #6b6f8a;
+    font-size: 12px;
+    margin-top: 10px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div id="wrap"><canvas id="game" width="720" height="680"></canvas></div>
+  <div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
+  <script src="game.js"></script>
+</body>
+</html>
