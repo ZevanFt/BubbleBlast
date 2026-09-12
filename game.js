@@ -47,12 +47,22 @@ initAssets();
 /* ---------- 自适应缩放 & 全屏 ---------- */
 // 画布永远占满整个浏览器窗口（CSS flex 布局），
 // 游戏画面在画布内等比缩放居中，按物理像素渲染 → 任何尺寸下都是高清矢量
+// viewRect 记录游戏坐标系下的可见范围（可以超出 0..W / 0..H，用于背景延伸）
+let viewRect = { x0: 0, y0: 0, x1: W, y1: H };
 function fitCanvas() {
   const dpr = window.devicePixelRatio || 1;
   cvs.width = Math.round(innerWidth * dpr);
   cvs.height = Math.round(innerHeight * dpr);
   const scale = Math.min(cvs.width / W, cvs.height / H);
-  ctx.setTransform(scale, 0, 0, scale, (cvs.width - W * scale) / 2, (cvs.height - H * scale) / 2);
+  const offX = (cvs.width - W * scale) / 2;
+  const offY = (cvs.height - H * scale) / 2;
+  ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  viewRect = {
+    x0: -offX / scale,
+    y0: -offY / scale,
+    x1: (cvs.width - offX) / scale,
+    y1: (cvs.height - offY) / scale,
+  };
 }
 function toggleFullscreen() {
   try {
@@ -795,14 +805,22 @@ const Game = {
 
   /* ---------- 渲染 ---------- */
   draw() {
-    // 先把整个物理画布涂满底色（游戏区外留黑边）
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#151827';
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
-    ctx.restore();
-
-    ctx.save();
+    if (this.state !== 'menu') {
+      // 背景延伸：草地格子 + HUD 深色条一直画到窗口边缘（游戏区外也有背景）
+      const vr = viewRect;
+      const c0 = Math.floor(vr.x0 / TILE), c1 = Math.ceil(vr.x1 / TILE);
+      const r0 = Math.floor((vr.y0 - HUD_H) / TILE), r1 = Math.ceil((vr.y1 - HUD_H) / TILE);
+      for (let ry = r0; ry < r1; ry++)
+        for (let rx = c0; rx < c1; rx++) {
+          ctx.fillStyle = (rx + ry) % 2 ? this.theme.g1 : this.theme.g2;
+          ctx.fillRect(rx * TILE, HUD_H + ry * TILE, TILE, TILE);
+        }
+      if (vr.y0 < HUD_H) {
+        ctx.fillStyle = '#20233a';
+        ctx.fillRect(vr.x0, vr.y0, vr.x1 - vr.x0, HUD_H - vr.y0);
+      }
+    }
     if (this.shakeT > 0) {
       ctx.translate(rand(-1, 1) * this.shakeT * 14, rand(-1, 1) * this.shakeT * 14);
     }
@@ -892,8 +910,9 @@ const Game = {
   },
 
   drawOverlay(title, sub) {
+    const vr = viewRect;
     ctx.fillStyle = 'rgba(10,12,30,.55)';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(vr.x0, vr.y0, vr.x1 - vr.x0, vr.y1 - vr.y0);
     this.drawOutlinedText(title, W / 2, H / 2 - 30, 42, '#ffe066');
     sub.split('\n').forEach((s, i) =>
       this.drawOutlinedText(s, W / 2, H / 2 + 24 + i * 34, 20, '#fff'));
@@ -1180,10 +1199,11 @@ const Game = {
   },
 
   drawHUD() {
+    const vr = viewRect;
     ctx.fillStyle = '#20233a';
-    ctx.fillRect(0, 0, W, HUD_H);
+    ctx.fillRect(vr.x0, 0, vr.x1 - vr.x0, HUD_H);
     ctx.fillStyle = '#2c3050';
-    ctx.fillRect(0, HUD_H - 4, W, 4);
+    ctx.fillRect(vr.x0, HUD_H - 4, vr.x1 - vr.x0, 4);
 
     if (this.mode === 'single') {
       const p = this.players[0];
