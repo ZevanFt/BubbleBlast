@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <defs>
+    <radialGradient id="en3Body" cx="40%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#c96a3f"/>
+      <stop offset="100%" stop-color="#8a4828"/>
+    </radialGradient>
+    <filter id="en3Shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- 影子 -->
+  <ellipse cx="30" cy="50" rx="14" ry="5" fill="rgba(0,0,0,0.2)"/>
+  <!-- 身体 -->
+  <circle cx="30" cy="28" r="20" fill="url(#en3Body)" filter="url(#en3Shadow)"/>
+  <circle cx="30" cy="28" r="20" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
+  <!-- 火把装饰 -->
+  <rect x="44" y="5" width="4" height="12" rx="2" fill="#caa06a"/>
+  <circle cx="46" cy="4" r="5" fill="#ff6b3d" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="0.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="46" cy="4" r="3" fill="#ffd23d">
+    <animate attributeName="r" values="3;5;3" dur="0.5s" repeatCount="indefinite"/>
+  </circle>
+  <!-- 眼睛 -->
+  <ellipse cx="22" cy="26" rx="5.5" ry="6.5" fill="#fff"/>
+  <circle cx="23" cy="27" r="3" fill="#1a1a2e"/>
+  <circle cx="21.5" cy="25.5" r="1.2" fill="#fff"/>
+  <ellipse cx="38" cy="26" rx="5.5" ry="6.5" fill="#fff"/>
+  <circle cx="39" cy="27" r="3" fill="#1a1a2e"/>
+  <circle cx="37.5" cy="25.5" r="1.2" fill="#fff"/>
+  <!-- 独眼罩 -->
+  <circle cx="38" cy="26" r="7" fill="#1a1a2e" opacity="0.7"/>
+  <!-- 疤 -->
+  <path d="M30,16 L33,19" stroke="#1a1a2e" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M33,16 L30,19" stroke="#1a1a2e" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 腮红 -->
+  <ellipse cx="15" cy="33" rx="3.5" ry="2.2" fill="rgba(255,160,100,0.4)"/>
+  <ellipse cx="45" cy="33" rx="3.5" ry="2.2" fill="rgba(255,160,100,0.4)"/>
+  <!-- 嘴巴 -->
+  <path d="M25,35 Q30,39 35,35" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- 手臂 -->
+  <circle cx="10" cy="30" r="5.5" fill="#c96a3f"/>
+  <circle cx="50" cy="30" r="5.5" fill="#c96a3f"/>
+</svg>

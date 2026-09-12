@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <defs>
+    <radialGradient id="en1Body" cx="40%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#8a5cc9"/>
+      <stop offset="100%" stop-color="#5e3a8a"/>
+    </radialGradient>
+    <filter id="en1Shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- 影子 -->
+  <ellipse cx="30" cy="50" rx="14" ry="5" fill="rgba(0,0,0,0.2)"/>
+  <!-- 身体 -->
+  <circle cx="30" cy="28" r="20" fill="url(#en1Body)" filter="url(#en1Shadow)"/>
+  <circle cx="30" cy="28" r="20" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
+  <!-- 尖角装饰 -->
+  <path d="M18,14 L22,8 L26,14" fill="#a87fd4"/>
+  <path d="M34,14 L38,8 L42,14" fill="#a87fd4"/>
+  <!-- 眼睛（独眼/斜眼更邪恶） -->
+  <ellipse cx="22" cy="26" rx="6" ry="7" fill="#fff"/>
+  <ellipse cx="38" cy="26" rx="6" ry="7" fill="#fff"/>
+  <!-- 瞳孔朝上（邪恶感） -->
+  <circle cx="23" cy="23" r="3.2" fill="#1a1a2e"/>
+  <circle cx="39" cy="23" r="3.2" fill="#1a1a2e"/>
+  <circle cx="21.5" cy="24.5" r="1" fill="#fff"/>
+  <circle cx="37.5" cy="24.5" r="1" fill="#fff"/>
+  <!-- 眉毛 -->
+  <path d="M16,18 L24,16" stroke="#1a1a2e" stroke-width="2" stroke-linecap="round"/>
+  <path d="M36,16 L44,18" stroke="#1a1a2e" stroke-width="2" stroke-linecap="round"/>
+  <!-- 腮红（红色表示凶恶） -->
+  <ellipse cx="14" cy="34" rx="4" ry="2.5" fill="rgba(255,80,80,0.4)"/>
+  <ellipse cx="46" cy="34" rx="4" ry="2.5" fill="rgba(255,80,80,0.4)"/>
+  <!-- 嘴巴（坏笑） -->
+  <path d="M24,36 Q30,42 36,36" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- 尖牙 -->
+  <polygon points="27,37 29,42 31,37" fill="#fff"/>
+  <!-- 手臂 -->
+  <circle cx="10" cy="30" r="5.5" fill="#8a5cc9"/>
+  <circle cx="50" cy="30" r="5.5" fill="#8a5cc9"/>
+</svg>

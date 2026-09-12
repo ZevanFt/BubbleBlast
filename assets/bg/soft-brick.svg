@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="softTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c68a4e"/>
+      <stop offset="100%" stop-color="#b07a3d"/>
+    </linearGradient>
+    <linearGradient id="softSide" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a9713d"/>
+      <stop offset="100%" stop-color="#8a5a30"/>
+    </linearGradient>
+    <filter id="softDepth" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="2" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- 软砖主体 -->
+  <rect x="2" y="2" width="44" height="44" rx="6" fill="url(#softTop)" filter="url(#softDepth)"/>
+  <!-- 砖纹 -->
+  <g stroke="#8a5a30" stroke-width="1.5" fill="none" opacity="0.5">
+    <path d="M8,6 L8,40"/>
+    <path d="M24,6 L24,40"/>
+    <path d="M40,6 L40,40"/>
+    <path d="M4,20 L44,20"/>
+    <path d="M4,36 L44,36"/>
+  </g>
+  <!-- 破损高光 -->
+  <rect x="3" y="3" width="42" height="20" rx="5" fill="rgba(255,255,255,0.1)"/>
+  <!-- 底部阴影 -->
+  <rect x="2" y="30" width="44" height="16" rx="0 0 6 6" fill="url(#softSide)" opacity="0.5"/>
+</svg>

@@ -20,6 +20,22 @@ const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2;
 const cvs = document.getElementById('game');
 const ctx = cvs.getContext('2d');
 
+/* ---------- 资源加载 & 加载界面 ---------- */
+let assetsReady = false;
+const loader = document.getElementById('loader');
+const barFill = document.getElementById('barFill');
+
+Assets.onProgress((loaded, total) => {
+  barFill.style.width = Math.round(loaded / total * 100) + '%';
+});
+
+async function initAssets() {
+  const count = await Assets.init();
+  assetsReady = true;
+  setTimeout(() => { loader.classList.add('hidden'); }, 400);
+}
+initAssets();
+
 /* ---------- 自适应缩放 & 全屏 ---------- */
 function fitCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -887,6 +903,14 @@ const Game = {
     const px = cx(it.tx), py = cy(it.ty) + bob;
     ctx.fillStyle = 'rgba(0,0,0,.18)';
     ctx.beginPath(); ctx.ellipse(cx(it.tx), cy(it.ty) + 16, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    /* === SVG 道具图片 === */
+    const itemNames = { [ITEM_BOMB]: 'items/bomb', [ITEM_FIRE]: 'items/fire', [ITEM_SPEED]: 'items/speed' };
+    const img = Assets.get(itemNames[it.type]);
+    if (img) {
+      ctx.drawImage(img, px - 14, py - 14, 28, 28);
+    } else {
+    /* === Canvas 降级 === */
     const colors = { [ITEM_BOMB]: '#3d4a66', [ITEM_FIRE]: '#ff7043', [ITEM_SPEED]: '#42c6ff' };
     ctx.fillStyle = colors[it.type];
     this.roundRect(px - 14, py - 14, 28, 28, 8); ctx.fill();
@@ -914,6 +938,7 @@ const Game = {
       ctx.moveTo(px + 2, py - 8); ctx.lineTo(px + 10, py); ctx.lineTo(px + 2, py + 8);
       ctx.closePath(); ctx.fill();
     }
+    } // 结束 Canvas 降级块
   },
 
   drawChar(e) {
@@ -935,6 +960,20 @@ const Game = {
     ctx.fillStyle = 'rgba(0,0,0,.22)';
     ctx.beginPath(); ctx.ellipse(0, 17, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.translate(0, -bob);
+
+    /* === SVG 角色图片（预加载成功后使用） === */
+    const isP2 = (e.name === 'P2');
+    const assetKey = e.isAI ? null : (isP2 ? 'chars/player-p2' : 'chars/player-p1');
+    const img = e.isAI ? null : Assets.get(assetKey);
+    if (img) {
+      ctx.drawImage(img, -r, -r, r * 2, r * 2);
+      // 手臂动画
+      ctx.fillStyle = this.shade(e.color, -12);
+      const swing = e.moving ? Math.sin(e.anim * 12) * 4 : 0;
+      ctx.beginPath(); ctx.arc(-r - 2 + swing * 0.4, 2 - swing, 5.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(r + 2 - swing * 0.4, 2 + swing, 5.5, 0, Math.PI * 2); ctx.fill();
+    } else {
+    /* === Canvas 降级绘制 === */
     // 身体
     const g = ctx.createRadialGradient(-5, -8, 4, 0, 0, r + 6);
     g.addColorStop(0, '#ffffff');
@@ -972,6 +1011,7 @@ const Game = {
       ctx.arc(0, 3, 3.5, Math.PI * 0.15, Math.PI * 0.85);
     }
     ctx.stroke();
+    } // 结束 Canvas 降级块
     ctx.restore();
   },
 

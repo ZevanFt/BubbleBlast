@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 44" width="120" height="44">
+  <rect x="0" y="0" width="120" height="44" rx="22" fill="#ffe066"/>
+  <rect x="0" y="0" width="120" height="44" rx="22" fill="none" stroke="#ffd23d" stroke-width="2"/>
+  <!-- 播放三角 -->
+  <polygon points="48,12 48,32 76,22" fill="#e05b5b"/>
+</svg>

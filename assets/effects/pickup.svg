@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+  <defs>
+    <radialGradient id="pickupGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff8d0" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ffd23d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pickupRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd23d"/>
+      <stop offset="100%" stop-color="#ff9a3d"/>
+    </linearGradient>
+  </defs>
+  <!-- 外圈光晕 -->
+  <circle cx="25" cy="25" r="22" fill="url(#pickupGlow)">
+    <animate attributeName="r" values="18;24;18" dur="0.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="0.8s" repeatCount="indefinite"/>
+  </circle>
+  <!-- 旋转光环 -->
+  <circle cx="25" cy="25" r="18" fill="none" stroke="url(#pickupRing)" stroke-width="2.5" stroke-dasharray="8 4" opacity="0.8">
+    <animate attributeName="stroke-dashoffset" values="0;36" dur="1s" repeatCount="indefinite"/>
+  </circle>
+  <!-- 内圈 -->
+  <circle cx="25" cy="25" r="12" fill="#fff" opacity="0.3"/>
+  <!-- 星形 -->
+  <polygon points="25,10 27,18 35,18 29,23 31,31 25,27 19,31 21,23 15,18 23,18" fill="#ffd23d" opacity="0.9">
+    <animate attributeName="transform" values="0 25 25;360 25 25" dur="3s" repeatCount="indefinite"/>
+  </polygon>
+  <!-- 中心 -->
+  <circle cx="25" cy="25" r="4" fill="#fff"/>
+</svg>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <radialGradient id="expCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbe6"/>
+      <stop offset="30%" stop-color="#ffd23d"/>
+      <stop offset="100%" stop-color="#ff6b3d" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="expRing" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff9a3d" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ff4500" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 外环冲击波 -->
+  <circle cx="40" cy="40" r="35" fill="none" stroke="#ff6b3d" stroke-width="3" opacity="0.5">
+    <animate attributeName="r" values="10;35" dur="0.4s" fill="freeze"/>
+    <animate attributeName="opacity" values="0.8;0" dur="0.4s" fill="freeze"/>
+  </circle>
+  <!-- 中环 -->
+  <circle cx="40" cy="40" r="24" fill="url(#expRing)" opacity="0.7">
+    <animate attributeName="r" values="5;24" dur="0.3s" fill="freeze"/>
+    <animate attributeName="opacity" values="0.9;0.3" dur="0.35s" fill="freeze"/>
+  </circle>
+  <!-- 核心 -->
+  <circle cx="40" cy="40" r="16" fill="url(#expCore)">
+    <animate attributeName="r" values="3;16" dur="0.2s" fill="freeze"/>
+  </circle>
+  <!-- 粒子飞溅 -->
+  <circle cx="40" cy="15" r="3" fill="#ffd23d" opacity="0.9">
+    <animate attributeName="cy" values="40;10" dur="0.4s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.4s" fill="freeze"/>
+  </circle>
+  <circle cx="65" cy="25" r="2.5" fill="#ff9a3d" opacity="0.9">
+    <animate attributeName="cy" values="40;12" dur="0.35s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.35s" fill="freeze"/>
+  </circle>
+  <circle cx="70" cy="45" r="2.5" fill="#ff5b3d" opacity="0.9">
+    <animate attributeName="cx" values="40;72" dur="0.35s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.35s" fill="freeze"/>
+  </circle>
+  <circle cx="58" cy="68" r="2" fill="#ffd23d" opacity="0.9">
+    <animate attributeName="cy" values="40;72" dur="0.4s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.4s" fill="freeze"/>
+  </circle>
+  <circle cx="22" cy="65" r="2.5" fill="#ff9a3d" opacity="0.9">
+    <animate attributeName="cy" values="40;68" dur="0.45s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.45s" fill="freeze"/>
+  </circle>
+  <circle cx="12" cy="35" r="2" fill="#ff5b3d" opacity="0.9">
+    <animate attributeName="cx" values="40;10" dur="0.35s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.35s" fill="freeze"/>
+  </circle>
+  <circle cx="25" cy="18" r="2" fill="#fffbe6" opacity="0.8">
+    <animate attributeName="cy" values="40;15" dur="0.3s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.3s" fill="freeze"/>
+  </circle>
+  <circle cx="60" cy="18" r="2" fill="#ffd23d" opacity="0.8">
+    <animate attributeName="cx" values="40;62" dur="0.32s" fill="freeze"/>
+    <animate attributeName="cy" values="40;15" dur="0.32s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.32s" fill="freeze"/>
+  </circle>
+  <!-- 闪光 -->
+  <circle cx="40" cy="40" r="4" fill="#fff" opacity="0">
+    <animate attributeName="r" values="2;8" dur="0.15s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0" dur="0.15s" fill="freeze"/>
+  </circle>
+</svg>

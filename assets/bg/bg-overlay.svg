@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 56" width="720" height="56">
+  <defs>
+    <linearGradient id="hudBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#20233a"/>
+      <stop offset="100%" stop-color="#1a1c30"/>
+    </linearGradient>
+    <linearGradient id="hudLine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a5080"/>
+      <stop offset="100%" stop-color="#2a2e44"/>
+    </linearGradient>
+  </defs>
+  <!-- HUD 背景 -->
+  <rect width="720" height="56" fill="url(#hudBg)"/>
+  <!-- 顶部高光 -->
+  <rect width="720" height="2" fill="rgba(255,255,255,0.05)"/>
+  <!-- 分割线 -->
+  <rect y="52" width="720" height="4" fill="url(#hudLine)"/>
+  <!-- 装饰角标 -->
+  <polygon points="0,0 20,0 0,20" fill="#4f8fdc" opacity="0.3"/>
+  <polygon points="720,0 700,0 720,20" fill="#e05b5b" opacity="0.3"/>
+  <polygon points="0,56 20,56 0,36" fill="#4f8fdc" opacity="0.2"/>
+  <polygon points="720,56 700,56 720,36" fill="#e05b5b" opacity="0.2"/>
+</svg>

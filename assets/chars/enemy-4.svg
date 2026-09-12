@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <defs>
+    <radialGradient id="en4Body" cx="40%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#c93f7a"/>
+      <stop offset="100%" stop-color="#8a2a55"/>
+    </radialGradient>
+    <filter id="en4Shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- 影子 -->
+  <ellipse cx="30" cy="50" rx="14" ry="5" fill="rgba(0,0,0,0.2)"/>
+  <!-- 身体 -->
+  <circle cx="30" cy="28" r="20" fill="url(#en4Body)" filter="url(#en4Shadow)"/>
+  <circle cx="30" cy="28" r="20" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
+  <!-- 王冠 -->
+  <path d="M14,12 L18,5 L22,10 L26,3 L30,8 L34,3 L38,10 L42,5 L46,12" fill="#ffd23d" stroke="#c9a830" stroke-width="0.8"/>
+  <circle cx="26" cy="4" r="2" fill="#ff4757"/>
+  <!-- 眼睛 -->
+  <ellipse cx="22" cy="26" rx="5.5" ry="6.5" fill="#fff"/>
+  <circle cx="23" cy="27" r="3" fill="#1a1a2e"/>
+  <circle cx="21.5" cy="25.5" r="1.2" fill="#fff"/>
+  <ellipse cx="38" cy="26" rx="5.5" ry="6.5" fill="#fff"/>
+  <circle cx="39" cy="27" r="3" fill="#1a1a2e"/>
+  <circle cx="37.5" cy="25.5" r="1.2" fill="#fff"/>
+  <!-- 泪痣 -->
+  <circle cx="44" cy="30" r="1.5" fill="#ff4757" opacity="0.6"/>
+  <!-- 腮红 -->
+  <ellipse cx="15" cy="33" rx="3.5" ry="2.2" fill="rgba(255,120,180,0.4)"/>
+  <ellipse cx="45" cy="33" rx="3.5" ry="2.2" fill="rgba(255,120,180,0.4)"/>
+  <!-- 嘴巴（俏皮） -->
+  <circle cx="30" cy="36" r="3" fill="#1a1a2e"/>
+  <!-- 蝴蝶结 -->
+  <path d="M20,20 Q22,14 26,18 Q24,16 26,14 Q30,10 32,14 Q34,16 32,18 Q36,14 38,20" fill="#ff6b8a" opacity="0.7"/>
+  <circle cx="30" cy="18" r="2" fill="#ff6b8a" opacity="0.7"/>
+  <!-- 手臂 -->
+  <circle cx="10" cy="30" r="5.5" fill="#c93f7a"/>
+  <circle cx="50" cy="30" r="5.5" fill="#c93f7a"/>
+</svg>

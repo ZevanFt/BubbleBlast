@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 草地基底 -->
+  <rect width="48" height="48" fill="#7ec850"/>
+  <!-- 草纹 -->
+  <rect width="48" height="48" fill="#74bf4a" opacity="0.5"/>
+  <!-- 草丛点缀 -->
+  <g opacity="0.3">
+    <path d="M8,20 Q10,14 12,18 Q14,12 16,18" stroke="#5a9e3a" stroke-width="1.5" fill="none"/>
+    <path d="M28,30 Q30,24 32,28 Q34,22 36,28" stroke="#5a9e3a" stroke-width="1.5" fill="none"/>
+    <path d="M15,38 Q17,32 19,36 Q21,30 23,36" stroke="#5a9e3a" stroke-width="1" fill="none"/>
+    <path d="M38,14 Q40,8 42,12 Q44,6 46,12" stroke="#5a9e3a" stroke-width="1" fill="none"/>
+    <path d="M6,35 Q8,30 10,34 Q12,28 14,34" stroke="#5a9e3a" stroke-width="1" fill="none"/>
+  </g>
+  <!-- 小花 -->
+  <circle cx="18" cy="14" r="1" fill="#ff9a3d" opacity="0.5"/>
+  <circle cx="35" cy="22" r="0.8" fill="#ff6b8a" opacity="0.4"/>
+  <circle cx="10" cy="30" r="0.8" fill="#ff9a3d" opacity="0.4"/>
+  <circle cx="40" cy="38" r="1" fill="#ff6b8a" opacity="0.3"/>
+</svg>

@@ -34,11 +34,58 @@
     margin-top: 10px;
     letter-spacing: 1px;
   }
+  /* 加载界面 */
+  #loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 28, 44, 0.95);
+    border-radius: 10px;
+    z-index: 10;
+    transition: opacity 0.5s;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  #loader .logo {
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffe066;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(255,224,102,0.5);
+  }
+  #loader .bar-bg {
+    width: 200px; height: 8px;
+    background: #2a2d44;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  #loader .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f8fdc, #e05b5b);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+  #loader .load-text {
+    color: #6b6f8a;
+    font-size: 13px;
+    margin-top: 12px;
+  }
 </style>
 </head>
 <body>
-  <div id="wrap"><canvas id="game" width="720" height="680"></canvas></div>
+  <div id="wrap">
+    <canvas id="game" width="720" height="680"></canvas>
+    <div id="loader">
+      <div class="logo">🫧 BubbleBlast</div>
+      <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+      <div class="load-text">正在加载素材...</div>
+    </div>
+  </div>
   <div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
+  <script src="asset-loader.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
