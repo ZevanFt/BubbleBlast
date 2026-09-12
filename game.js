@@ -15,7 +15,15 @@ const W = COLS * TILE;              // 720
 const H = ROWS * TILE + HUD_H;      // 624 + 56
 
 const EMPTY = 0, STONE = 1, SOFT = 2;
-const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2;
+const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5;
+
+/* ---------- 地图主题（按关卡/回合轮换） ---------- */
+const THEMES = [
+  { name: '草原', g1: '#7ec850', g2: '#74bf4a', stone: '#5a6579', stoneTop: '#6d7891' },
+  { name: '雪原', g1: '#d4e6f5', g2: '#c6dcef', stone: '#7f93ad', stoneTop: '#94a9c4' },
+  { name: '沙漠', g1: '#ecd9a0', g2: '#e3cd8c', stone: '#9a7b58', stoneTop: '#b08e66' },
+  { name: '夜幕', g1: '#414d78', g2: '#3a4570', stone: '#2c3352', stoneTop: '#3d4570' },
+];
 
 const cvs = document.getElementById('game');
 const ctx = cvs.getContext('2d');
@@ -37,17 +45,14 @@ async function initAssets() {
 initAssets();
 
 /* ---------- 自适应缩放 & 全屏 ---------- */
+// 画布永远占满整个浏览器窗口（CSS flex 布局），
+// 游戏画面在画布内等比缩放居中，按物理像素渲染 → 任何尺寸下都是高清矢量
 function fitCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  cvs.width = Math.round(W * dpr);
-  cvs.height = Math.round(H * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const tip = document.getElementById('tip');
-  const tipH = document.fullscreenElement ? 0 : tip.offsetHeight + 12;
-  const margin = document.fullscreenElement ? 0 : 16;
-  const scale = Math.min((innerWidth - margin * 2) / W, (innerHeight - margin * 2 - tipH) / H);
-  cvs.style.width = Math.floor(W * scale) + 'px';
-  cvs.style.height = Math.floor(H * scale) + 'px';
+  cvs.width = Math.round(innerWidth * dpr);
+  cvs.height = Math.round(innerHeight * dpr);
+  const scale = Math.min(cvs.width / W, cvs.height / H);
+  ctx.setTransform(scale, 0, 0, scale, (cvs.width - W * scale) / 2, (cvs.height - H * scale) / 2);
 }
 function toggleFullscreen() {
   try {
@@ -204,6 +209,7 @@ function makePlayer(tx, ty, color, name, isAI = false) {
     color, name, isAI,
     alive: true, dying: 0, dead: false,
     invincible: 0, anim: rand(0, 9),
+    kick: false, shield: 0, remote: false,
     face: { x: 0, y: 1 }, moving: false,
     lives: 3, score: 0,
   };
@@ -237,6 +243,7 @@ const Game = {
     this.mode = mode;
     this.hidden = [];
     this.map = genMap(mode);
+    this.theme = THEMES[0];
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
     this.enemies = [];
     this.level = 1; this.round = 1;
@@ -259,6 +266,7 @@ const Game = {
     this.level++;
     this.hidden = [];
     this.map = genMap(this.mode);
+    this.theme = THEMES[(this.level - 1) % THEMES.length];
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
     const p = this.players[0];
     p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
@@ -272,6 +280,7 @@ const Game = {
     this.round++;
     this.hidden = [];
     this.map = genMap(this.mode);
+    this.theme = THEMES[(this.round - 1) % THEMES.length];
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
     const spots = [[1, 1], [COLS - 2, ROWS - 2]];
     this.players.forEach((p, i) => {
@@ -279,6 +288,7 @@ const Game = {
       p.tx = spots[i][0]; p.ty = spots[i][1];
       p.alive = true; p.dead = false; p.invincible = 2; p.dying = 0;
       p.bombMax = 1; p.bombActive = 0; p.fire = 2; p.speed = 150;
+      p.kick = false; p.shield = 0; p.remote = false;
     });
     this.spawnItemsForVersus();
     this.state = 'play';
@@ -298,11 +308,12 @@ const Game = {
 
   spawnItemsForVersus() {
     // 对战模式：把部分软砖下埋道具
+    const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE];
     let placed = 0;
-    for (let i = 0; i < this.map.length && placed < 12; i++) {
+    for (let i = 0; i < this.map.length && placed < 14; i++) {
       if (this.map[i] === SOFT && Math.random() < 0.3) {
         this.hidden = this.hidden || [];
-        this.hidden[i] = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED][randi(0, 2)];
+        this.hidden[i] = pool[randi(0, pool.length - 1)];
         placed++;
       }
     }
@@ -339,12 +350,28 @@ const Game = {
 
   /* ---------- 泡泡 ---------- */
   placeBomb(p) {
-    if (p.bombActive >= p.bombMax) return;
+    // 遥控引爆：泡泡放满了再按键 → 引爆自己最早的一颗
+    if (p.bombActive >= p.bombMax) {
+      if (p.remote) {
+        const mine = this.bombs.filter(b => b.owner === p && b.timer > 0);
+        if (mine.length) mine[0].timer = 0.01;
+      }
+      return;
+    }
     const tx = p.tx, ty = p.ty;
     if (this.bombs.some(b => b.tx === tx && b.ty === ty)) return;
     p.bombActive++;
     this.bombs.push({ tx, ty, timer: 2.4, range: p.fire, owner: p, pass: new Set([p]) });
     Sfx.place();
+  },
+
+  // 泡泡能否滑进目标格
+  canSlideTo(b, nx, ny) {
+    if (!inMap(nx, ny)) return false;
+    if (this.map[idx(nx, ny)] !== EMPTY) return false;
+    if (this.bombs.some(o => o !== b && o.tx === nx && o.ty === ny)) return false;
+    if ([...this.players, ...this.enemies].some(e => e.alive && e.tx === nx && e.ty === ny)) return false;
+    return true;
   },
 
   explode(b) {
@@ -392,7 +419,7 @@ const Game = {
     if (this.mode === 'versus' && this.hidden && this.hidden[idx(x, y)] != null) {
       type = this.hidden[idx(x, y)]; this.hidden[idx(x, y)] = null;
     } else if (this.mode === 'single' && Math.random() < 0.38) {
-      type = [ITEM_BOMB, ITEM_FIRE, ITEM_FIRE, ITEM_SPEED][randi(0, 3)];
+      type = [ITEM_BOMB, ITEM_FIRE, ITEM_FIRE, ITEM_SPEED, ITEM_SPEED, ITEM_KICK, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE][randi(0, 8)];
     }
     if (type !== null) this.items.push({ tx: x, ty: y, type, anim: 0 });
   },
@@ -403,7 +430,7 @@ const Game = {
     const t = this.map[idx(tx, ty)];
     if (t === STONE || t === SOFT) return true;
     const b = this.bombs.find(b => b.tx === tx && b.ty === ty);
-    if (b && !b.pass.has(e)) return true;
+    if (b && !b.slide && !b.pass.has(e)) return true;   // 滑行中的泡泡不挡路
     return false;
   },
 
@@ -416,6 +443,20 @@ const Game = {
       const cellY1 = Math.floor((e.y - e.half + 1 - HUD_H) / TILE);
       const cellY2 = Math.floor((e.y + e.half - 1 - HUD_H) / TILE);
       let blocked = this.solidFor(e, tcol, cellY1) || this.solidFor(e, tcol, cellY2);
+      // 踢泡泡：有踢鞋时顶到泡泡就把它踢飞
+      if (blocked && e.kick) {
+        for (const cyy of (cellY1 !== cellY2 ? [cellY1, cellY2] : [cellY1])) {
+          const bomb = this.bombs.find(b => !b.slide && b.tx === tcol && b.ty === cyy);
+          if (bomb && this.canSlideTo(bomb, tcol + Math.sign(dx), cyy)) {
+            bomb.slide = { dx: Math.sign(dx), dy: 0 };
+            bomb.slideTx = tcol + Math.sign(dx);
+            bomb.slideTy = cyy;
+            bomb.px = cx(bomb.tx); bomb.py = cy(bomb.ty);
+            bomb.pass.clear();
+            blocked = this.solidFor(e, tcol, cellY1) || this.solidFor(e, tcol, cellY2);
+          }
+        }
+      }
       if (!blocked) {
         e.x = nx;
       } else {
@@ -438,6 +479,20 @@ const Game = {
       const cellX1 = Math.floor((e.x - e.half + 1) / TILE);
       const cellX2 = Math.floor((e.x + e.half - 1) / TILE);
       let blocked = this.solidFor(e, cellX1, trow) || this.solidFor(e, cellX2, trow);
+      // 踢泡泡（垂直方向）
+      if (blocked && e.kick) {
+        for (const cxx of (cellX1 !== cellX2 ? [cellX1, cellX2] : [cellX1])) {
+          const bomb = this.bombs.find(b => !b.slide && b.tx === cxx && b.ty === trow);
+          if (bomb && this.canSlideTo(bomb, cxx, trow + Math.sign(dy))) {
+            bomb.slide = { dx: 0, dy: Math.sign(dy) };
+            bomb.slideTx = cxx;
+            bomb.slideTy = trow + Math.sign(dy);
+            bomb.px = cx(bomb.tx); bomb.py = cy(bomb.ty);
+            bomb.pass.clear();
+            blocked = this.solidFor(e, cellX1, trow) || this.solidFor(e, cellX2, trow);
+          }
+        }
+      }
       if (!blocked) {
         e.y = ny;
       } else {
@@ -458,7 +513,7 @@ const Game = {
   },
 
   killEntity(e) {
-    if (e.invincible > 0 || !e.alive || e.dying > 0) return;
+    if (e.invincible > 0 || (e.shield > 0) || !e.alive || e.dying > 0) return;
     e.alive = false; e.dying = 0.8;
     if (e.kind === 'enemy') {
       this.players[0].score++;
@@ -573,6 +628,7 @@ const Game = {
     // 玩家输入 / AI
     for (const p of this.players) {
       if (p.invincible > 0) p.invincible -= dt;
+      if (p.shield > 0) p.shield -= dt;
       if (!p.alive) continue;
       p.anim += dt;
       if (this.mode === 'versus' && p === this.players[1]) {
@@ -597,9 +653,31 @@ const Game = {
       }
     }
 
-    // 泡泡计时 & 玩家离开后泡泡变实心
+    // 泡泡计时 / 滑行 & 玩家离开后泡泡变实心
     for (const b of this.bombs) {
       b.timer -= dt;
+      if (b.slide) {
+        const sp = 330 * dt;
+        const gx = cx(b.slideTx), gy = cy(b.slideTy);
+        const ddx = gx - b.px, ddy = gy - b.py;
+        const dist = Math.hypot(ddx, ddy);
+        if (dist <= sp) {
+          b.px = gx; b.py = gy;
+          b.tx = b.slideTx; b.ty = b.slideTy;
+          // 到达一格后判断能否继续滑
+          const nx2 = b.tx + b.slide.dx, ny2 = b.ty + b.slide.dy;
+          if (this.canSlideTo(b, nx2, ny2)) {
+            b.slideTx = nx2; b.slideTy = ny2;
+          } else {
+            b.slide = null; b.px = undefined; b.py = undefined;
+          }
+        } else {
+          b.px += ddx / dist * sp;
+          b.py += ddy / dist * sp;
+          b.tx = clamp(Math.floor(b.px / TILE), 0, COLS - 1);
+          b.ty = clamp(Math.floor((b.py - HUD_H) / TILE), 0, ROWS - 1);
+        }
+      }
       for (const e of [...b.pass]) {
         const etx = Math.floor(e.x / TILE), ety = Math.floor((e.y - HUD_H) / TILE);
         if (etx !== b.tx || ety !== b.ty) b.pass.delete(e);
@@ -644,7 +722,13 @@ const Game = {
           if (it.type === ITEM_BOMB) p.bombMax = Math.min(p.bombMax + 1, 8);
           if (it.type === ITEM_FIRE) p.fire = Math.min(p.fire + 1, 8);
           if (it.type === ITEM_SPEED) p.speed = Math.min(p.speed + 22, 280);
-          this.showMsg(p.name + [' 泡泡+1!', ' 火力+1!', ' 速度+1!'][it.type]);
+          if (it.type === ITEM_KICK) p.kick = true;
+          if (it.type === ITEM_SHIELD) p.shield = 6;
+          if (it.type === ITEM_REMOTE) p.remote = true;
+          this.showMsg(p.name + [
+            ' 泡泡+1!', ' 火力+1!', ' 速度+1!',
+            ' 获得踢鞋！顶着泡泡把它踢飞！', ' 护盾！6 秒无敌！', ' 遥控器！泡泡满时按键引爆！',
+          ][it.type]);
         }
       }
     }
@@ -711,6 +795,13 @@ const Game = {
 
   /* ---------- 渲染 ---------- */
   draw() {
+    // 先把整个物理画布涂满底色（游戏区外留黑边）
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#151827';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.restore();
+
     ctx.save();
     if (this.shakeT > 0) {
       ctx.translate(rand(-1, 1) * this.shakeT * 14, rand(-1, 1) * this.shakeT * 14);
@@ -718,10 +809,10 @@ const Game = {
 
     if (this.state === 'menu') { this.drawMenu(); ctx.restore(); return; }
 
-    // 草地背景
+    // 草地背景（按主题配色）
     for (let y = 0; y < ROWS; y++)
       for (let x = 0; x < COLS; x++) {
-        ctx.fillStyle = (x + y) % 2 ? '#7ec850' : '#74bf4a';
+        ctx.fillStyle = (x + y) % 2 ? this.theme.g1 : this.theme.g2;
         ctx.fillRect(x * TILE, HUD_H + y * TILE, TILE, TILE);
       }
 
@@ -810,10 +901,11 @@ const Game = {
 
   drawStone(x, y) {
     const px = x * TILE, py = HUD_H + y * TILE;
-    ctx.fillStyle = '#5a6579';
+    const th = this.theme;
+    ctx.fillStyle = th.stone;
     this.roundRect(px + 1, py + 1, TILE - 2, TILE - 2, 8);
     ctx.fill();
-    ctx.fillStyle = '#6d7891';
+    ctx.fillStyle = th.stoneTop;
     this.roundRect(px + 3, py + 3, TILE - 6, TILE - 12, 7);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.14)';
@@ -842,8 +934,21 @@ const Game = {
   drawBomb(b) {
     const t = this.time * 6;
     const pulse = 1 + Math.sin(t) * 0.06 * (1 + (2.4 - Math.max(b.timer, 0)) / 2);
-    const px = cx(b.tx), py = cy(b.ty);
+    const px = b.px != null ? b.px : cx(b.tx);
+    const py = b.py != null ? b.py : cy(b.ty);
     const r = 16 * pulse;
+    // 滑行速度线
+    if (b.slide) {
+      ctx.strokeStyle = 'rgba(255,255,255,.5)';
+      ctx.lineWidth = 2; ctx.lineCap = 'round';
+      const bx = -b.slide.dx * 22, by = -b.slide.dy * 22;
+      for (const o of [-6, 0, 6]) {
+        ctx.beginPath();
+        ctx.moveTo(px + bx + (b.slide.dy ? o : 0), py + by + (b.slide.dx ? o : 0));
+        ctx.lineTo(px + bx * 1.6 + (b.slide.dy ? o : 0), py + by * 1.6 + (b.slide.dx ? o : 0));
+        ctx.stroke();
+      }
+    }
     // 影子
     ctx.fillStyle = 'rgba(0,0,0,.2)';
     ctx.beginPath(); ctx.ellipse(px, py + 15, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
@@ -905,13 +1010,16 @@ const Game = {
     ctx.beginPath(); ctx.ellipse(cx(it.tx), cy(it.ty) + 16, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
 
     /* === SVG 道具图片 === */
-    const itemNames = { [ITEM_BOMB]: 'items/bomb', [ITEM_FIRE]: 'items/fire', [ITEM_SPEED]: 'items/speed' };
+    const itemNames = {
+      [ITEM_BOMB]: 'items/bomb', [ITEM_FIRE]: 'items/fire', [ITEM_SPEED]: 'items/speed',
+      [ITEM_KICK]: 'items/kick', [ITEM_SHIELD]: 'items/shield', [ITEM_REMOTE]: 'items/remote',
+    };
     const img = Assets.get(itemNames[it.type]);
     if (img) {
       ctx.drawImage(img, px - 14, py - 14, 28, 28);
     } else {
     /* === Canvas 降级 === */
-    const colors = { [ITEM_BOMB]: '#3d4a66', [ITEM_FIRE]: '#ff7043', [ITEM_SPEED]: '#42c6ff' };
+    const colors = { [ITEM_BOMB]: '#3d4a66', [ITEM_FIRE]: '#ff7043', [ITEM_SPEED]: '#42c6ff', [ITEM_KICK]: '#b8863b', [ITEM_SHIELD]: '#8a5cc9', [ITEM_REMOTE]: '#3fa65b' };
     ctx.fillStyle = colors[it.type];
     this.roundRect(px - 14, py - 14, 28, 28, 8); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.28)';
@@ -930,6 +1038,38 @@ const Game = {
       ctx.quadraticCurveTo(px, py + 12, px - 5, py + 6);
       ctx.quadraticCurveTo(px - 9, py - 2, px, py - 10);
       ctx.fill();
+    } else if (it.type === ITEM_KICK) {
+      // 踢鞋 + 飞出线
+      ctx.fillStyle = '#fff';
+      this.roundRect(px - 8, py - 8, 8, 12, 3); ctx.fill();
+      this.roundRect(px - 8, py + 1, 14, 6, 3); ctx.fill();
+      ctx.lineWidth = 2;
+      for (const o of [-3, 1, 5]) {
+        ctx.beginPath();
+        ctx.moveTo(px + 3, py + o - 2); ctx.lineTo(px + 10, py + o - 2);
+        ctx.stroke();
+      }
+    } else if (it.type === ITEM_SHIELD) {
+      // 盾牌
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.moveTo(px, py - 9);
+      ctx.lineTo(px + 8, py - 5); ctx.lineTo(px + 8, py + 2);
+      ctx.quadraticCurveTo(px + 8, py + 8, px, py + 10);
+      ctx.quadraticCurveTo(px - 8, py + 8, px - 8, py + 2);
+      ctx.lineTo(px - 8, py - 5);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = colors[ITEM_SHIELD];
+      ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+    } else if (it.type === ITEM_REMOTE) {
+      // 遥控器：按钮 + 信号波
+      ctx.fillStyle = '#fff';
+      this.roundRect(px - 7, py - 4, 14, 10, 3); ctx.fill();
+      ctx.fillStyle = '#ff4757';
+      ctx.beginPath(); ctx.arc(px, py + 1, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py - 4, 5, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(px, py - 4, 8.5, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
     } else {
       ctx.fillStyle = '#fff';
       this.roundRect(px - 10, py - 3, 12, 6, 3); ctx.fill();
@@ -960,6 +1100,12 @@ const Game = {
     ctx.fillStyle = 'rgba(0,0,0,.22)';
     ctx.beginPath(); ctx.ellipse(0, 17, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.translate(0, -bob);
+    // 护盾光环
+    if (e.shield > 0) {
+      ctx.strokeStyle = `rgba(255,220,90,${0.5 + Math.sin(this.time * 8) * 0.25})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, r + 6 + Math.sin(this.time * 8) * 1.5, 0, Math.PI * 2); ctx.stroke();
+    }
 
     /* === SVG 角色图片（预加载成功后使用） === */
     const isP2 = (e.name === 'P2');
@@ -1046,23 +1192,30 @@ const Game = {
       this.drawOutlinedText(`第 ${this.level} 关`, 120, HUD_H / 2, 22, '#ffe066', 'left');
       this.drawOutlinedText(`敌人 x${alive}`, 230, HUD_H / 2, 22, '#9fd6ff', 'left');
       this.drawOutlinedText(`消灭 ${p.score}`, 350, HUD_H / 2, 22, '#b5e8a0', 'left');
-      this.drawOutlinedText(`💣 ${p.bombMax}  🔥 ${p.fire}  👟 ${Math.round((p.speed - 150) / 22)}`, 520, HUD_H / 2, 20, '#fff', 'left');
+      const perks = `💣 ${p.bombMax}  🔥 ${p.fire}  👟 ${Math.round((p.speed - 150) / 22)}`
+        + (p.kick ? '  🥾' : '') + (p.remote ? '  ⏱' : '') + (p.shield > 0 ? `  🛡${Math.ceil(p.shield)}` : '');
+      this.drawOutlinedText(perks, 460, HUD_H / 2, 20, '#fff', 'left');
     } else {
       const [a, b] = this.players;
       this.drawOutlinedText(`P1  ${a.score}`, W / 2 - 80, HUD_H / 2, 30, '#4f8fdc');
       this.drawOutlinedText(`第 ${this.round} 回合`, W / 2, HUD_H / 2, 18, '#ffe066');
       this.drawOutlinedText(`${b.score}  P2`, W / 2 + 80, HUD_H / 2, 30, '#e05b5b');
-      this.drawOutlinedText(`💣${a.bombMax} 🔥${a.fire}`, 120, HUD_H / 2, 18, '#9fc3ff', 'left');
-      this.drawOutlinedText(`💣${b.bombMax} 🔥${b.fire}`, W - 120, HUD_H / 2, 18, '#ffb0a8', 'right');
+      const perkA = `💣${a.bombMax} 🔥${a.fire}` + (a.kick ? ' 🥾' : '') + (a.remote ? ' ⏱' : '') + (a.shield > 0 ? ` 🛡${Math.ceil(a.shield)}` : '');
+      const perkB = `💣${b.bombMax} 🔥${b.fire}` + (b.kick ? ' 🥾' : '') + (b.remote ? ' ⏱' : '') + (b.shield > 0 ? ` 🛡${Math.ceil(b.shield)}` : '');
+      this.drawOutlinedText(perkA, 110, HUD_H / 2, 18, '#9fc3ff', 'left');
+      this.drawOutlinedText(perkB, W - 110, HUD_H / 2, 18, '#ffb0a8', 'right');
     }
   },
 
   drawMenu() {
-    // 背景
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#2b3a67'); g.addColorStop(1, '#1d2547');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    // 背景（铺满整个物理画布，边缘无缝）
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const gb = ctx.createLinearGradient(0, 0, 0, cvs.height);
+    gb.addColorStop(0, '#2b3a67'); gb.addColorStop(1, '#1d2547');
+    ctx.fillStyle = gb;
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.restore();
     // 漂浮泡泡装饰
     for (let i = 0; i < 14; i++) {
       const t = this.time * 0.4 + i * 2.1;
@@ -1110,7 +1263,8 @@ const Game = {
     ctx.globalAlpha = 1;
     this.drawOutlinedText('单人：方向键移动 · 空格放泡泡 · 炸光所有敌人过关', W / 2, 560, 17, '#8b93b8');
     this.drawOutlinedText('对战：P1 方向键+空格 ｜ P2 WASD+F · 三局两胜制（先胜3回合）', W / 2, 590, 17, '#8b93b8');
-    this.drawOutlinedText('吃道具：泡泡+1 · 火力+1 · 速度+1 ｜ 小心别被自己的泡泡炸到！', W / 2, 620, 17, '#8b93b8');
+    this.drawOutlinedText('吃道具：泡泡+1 · 火力+1 · 速度+1 · 踢鞋 · 护盾 · 遥控引爆器', W / 2, 620, 17, '#8b93b8');
+    this.drawOutlinedText('踢鞋：顶着泡泡走把它踢飞 ｜ 小心别被自己的泡泡炸到！', W / 2, 645, 15, '#8b93b8');
   },
 };
 

@@ -12,6 +12,8 @@ Everything — characters, bombs, flames, maps and sound effects — is generate
 - **Single-player campaign** — clear waves of enemies that chase you, dodge bombs, and level up through stages (3 lives, escalating difficulty)
 - **Local versus mode** — P1 vs P2 on one keyboard, first to 3 round wins
 - **Classic mechanics** — cross-shaped explosions, chain reactions, power-ups hidden under bricks (bomb / fire / speed), corner-slide movement
+- **Advanced power-ups** — kick (boot bombs across the field), shield (6s invincibility), remote detonator (trigger bombs on demand)
+- **Rotating map themes** — grassland, snowfield, desert and night palettes change every level / round
 - **Smart enemy AI** — BFS pathfinding, danger-map avoidance, and it checks for an escape route *before* dropping a bomb
 - **Procedural everything** — Q-version characters, particle effects and chiptune sound effects (WebAudio) are all drawn/synthesized in code
 - **Responsive & fullscreen** — auto-scales to any window size with retina (HiDPI) support; press `V` or double-click to go fullscreen
