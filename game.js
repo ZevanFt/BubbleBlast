@@ -9,10 +9,21 @@ window.addEventListener('error', e => window.__errs.push(e.message));
 
 /* ---------- 常量 ---------- */
 const TILE = 48;
-const COLS = 15, ROWS = 13;
 const HUD_H = 56;
-const W = COLS * TILE;              // 720
-const H = ROWS * TILE + HUD_H;      // 624 + 56
+// 场地尺寸不是固定的：跟随窗口长宽比动态生成（宽屏=宽地图，竖屏=窄高地图）
+let COLS = 15, ROWS = 13;
+let W = COLS * TILE, H = ROWS * TILE + HUD_H;
+
+function setFieldSize() {
+  const odd = n => (n % 2 === 0 ? n + 1 : n);   // 保持奇数，石柱布局对称
+  const max = (v, a) => Math.max(a, v);
+  const min = (v, a) => Math.min(a, v);
+  const aspect = max(0.45, min(3.2, innerWidth / max(1, innerHeight)));
+  ROWS = odd(max(9, min(19, Math.round(13 / Math.sqrt(aspect)))));
+  COLS = odd(max(9, min(27, Math.round(ROWS * aspect))));
+  W = COLS * TILE;
+  H = ROWS * TILE + HUD_H;
+}
 
 const EMPTY = 0, STONE = 1, SOFT = 2;
 const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5;
@@ -50,6 +61,7 @@ initAssets();
 // viewRect 记录游戏坐标系下的可见范围（可以超出 0..W / 0..H，用于背景延伸）
 let viewRect = { x0: 0, y0: 0, x1: W, y1: H };
 function fitCanvas() {
+  setFieldSize();
   const dpr = window.devicePixelRatio || 1;
   cvs.width = Math.round(innerWidth * dpr);
   cvs.height = Math.round(innerHeight * dpr);
@@ -307,8 +319,8 @@ const Game = {
 
   spawnEnemies() {
     this.enemies = [];
-    const n = Math.min(2 + (this.level - 1), 5);
-    const spots = [[COLS - 2, 1], [1, ROWS - 2], [COLS - 2, ROWS - 2], [COLS - 2, 2], [2, ROWS - 2]];
+    const n = Math.min(2 + (this.level - 1) + (COLS > 19 ? 1 : 0), 6); // 宽地图多放一个敌人
+    const spots = [[COLS - 2, 1], [1, ROWS - 2], [COLS - 2, ROWS - 2], [COLS - 2, 2], [2, ROWS - 2], [2, 2]];
     for (let i = 0; i < n; i++) {
       const [x, y] = spots[i];
       if (this.map[idx(x, y)] === SOFT) this.map[idx(x, y)] = EMPTY;
@@ -330,6 +342,28 @@ const Game = {
   },
 
   showMsg(s) { this.msg = s; this.msgT = 2; },
+
+  // 窗口尺寸变化 → 场地重新生成（保留生命/分数/道具进度）
+  onResize() {
+    if (this.state === 'menu' || !this.map) return;
+    this.hidden = [];
+    this.map = genMap(this.mode);
+    this.bombs = []; this.flames = []; this.items = []; this.particles = [];
+    if (this.mode === 'single') {
+      this.spawnEnemies();
+      const p = this.players[0];
+      p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
+      p.alive = true; p.dying = 0; p.invincible = 2;
+    } else {
+      const spots = [[1, 1], [COLS - 2, ROWS - 2]];
+      this.players.forEach((p, i) => {
+        p.x = cx(spots[i][0]); p.y = cy(spots[i][1]);
+        p.tx = spots[i][0]; p.ty = spots[i][1];
+        p.alive = true; p.dying = 0; p.invincible = 2;
+      });
+    }
+    this.showMsg('场地已随窗口调整！');
+  },
 
   onKey(k) {
     if (k === 'v' || k === 'V') toggleFullscreen();
@@ -1208,22 +1242,23 @@ const Game = {
     if (this.mode === 'single') {
       const p = this.players[0];
       const alive = this.enemies.filter(e => e.alive || e.dying > 0).length;
-      this.drawOutlinedText(`❤ ${p.lives}`, 30, HUD_H / 2, 24, '#ff6b7d', 'left');
-      this.drawOutlinedText(`第 ${this.level} 关`, 120, HUD_H / 2, 22, '#ffe066', 'left');
-      this.drawOutlinedText(`敌人 x${alive}`, 230, HUD_H / 2, 22, '#9fd6ff', 'left');
-      this.drawOutlinedText(`消灭 ${p.score}`, 350, HUD_H / 2, 22, '#b5e8a0', 'left');
+      const y = HUD_H / 2;
+      this.drawOutlinedText(`❤ ${p.lives}`, 16, y, 24, '#ff6b7d', 'left');
+      this.drawOutlinedText(`第 ${this.level} 关`, W * 0.15, y, 22, '#ffe066', 'left');
+      this.drawOutlinedText(`敌人 x${alive}`, W * 0.30, y, 22, '#9fd6ff', 'left');
+      this.drawOutlinedText(`消灭 ${p.score}`, W * 0.45, y, 22, '#b5e8a0', 'left');
       const perks = `💣 ${p.bombMax}  🔥 ${p.fire}  👟 ${Math.round((p.speed - 150) / 22)}`
         + (p.kick ? '  🥾' : '') + (p.remote ? '  ⏱' : '') + (p.shield > 0 ? `  🛡${Math.ceil(p.shield)}` : '');
-      this.drawOutlinedText(perks, 460, HUD_H / 2, 20, '#fff', 'left');
+      this.drawOutlinedText(perks, W - 16, y, 20, '#fff', 'right');
     } else {
       const [a, b] = this.players;
-      this.drawOutlinedText(`P1  ${a.score}`, W / 2 - 80, HUD_H / 2, 30, '#4f8fdc');
+      this.drawOutlinedText(`P1  ${a.score}`, W * 0.38, HUD_H / 2, 30, '#4f8fdc');
       this.drawOutlinedText(`第 ${this.round} 回合`, W / 2, HUD_H / 2, 18, '#ffe066');
-      this.drawOutlinedText(`${b.score}  P2`, W / 2 + 80, HUD_H / 2, 30, '#e05b5b');
+      this.drawOutlinedText(`${b.score}  P2`, W * 0.62, HUD_H / 2, 30, '#e05b5b');
       const perkA = `💣${a.bombMax} 🔥${a.fire}` + (a.kick ? ' 🥾' : '') + (a.remote ? ' ⏱' : '') + (a.shield > 0 ? ` 🛡${Math.ceil(a.shield)}` : '');
       const perkB = `💣${b.bombMax} 🔥${b.fire}` + (b.kick ? ' 🥾' : '') + (b.remote ? ' ⏱' : '') + (b.shield > 0 ? ` 🛡${Math.ceil(b.shield)}` : '');
-      this.drawOutlinedText(perkA, 110, HUD_H / 2, 18, '#9fc3ff', 'left');
-      this.drawOutlinedText(perkB, W - 110, HUD_H / 2, 18, '#ffb0a8', 'right');
+      this.drawOutlinedText(perkA, 16, HUD_H / 2, 18, '#9fc3ff', 'left');
+      this.drawOutlinedText(perkB, W - 16, HUD_H / 2, 18, '#ffb0a8', 'right');
     }
   },
 
@@ -1245,13 +1280,14 @@ const Game = {
       ctx.beginPath(); ctx.arc(bx, by, 14 + (i % 4) * 7, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    // 标题
+    // 标题（位置随 H 比例缩放，适配任意场地高度）
     const bounce = Math.sin(this.time * 3) * 8;
-    this.drawOutlinedText('泡 泡 堂', W / 2, 150 + bounce, 72, '#ffe066');
-    this.drawOutlinedText('· Q 版 复 刻 ·', W / 2, 215 + bounce, 24, '#9fd6ff');
+    this.drawOutlinedText('泡 泡 堂', W / 2, H * 0.22 + bounce, 72, '#ffe066');
+    this.drawOutlinedText('· Q 版 复 刻 ·', W / 2, H * 0.315 + bounce, 24, '#9fd6ff');
     // 两个吉祥物
-    const m1 = { x: W / 2 - 150, y: 330 + Math.sin(this.time * 3) * 6, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P1' };
-    const m2 = { x: W / 2 + 150, y: 330 + Math.cos(this.time * 3) * 6, color: '#e05b5b', face: { x: -1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P2' };
+    const my = H * 0.485;
+    const m1 = { x: W / 2 - 150, y: my + Math.sin(this.time * 3) * 6, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P1' };
+    const m2 = { x: W / 2 + 150, y: my + Math.cos(this.time * 3) * 6, color: '#e05b5b', face: { x: -1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P2' };
     for (const m of [m1, m2]) {
       ctx.save(); ctx.translate(m.x, m.y);
       const r = 22;
@@ -1278,23 +1314,34 @@ const Game = {
     // 菜单
     const flash = 0.7 + Math.sin(this.time * 4) * 0.3;
     ctx.globalAlpha = flash;
-    this.drawOutlinedText('按 [ 1 ] 单人闯关', W / 2, 450, 28, '#fff');
-    this.drawOutlinedText('按 [ 2 ] 双人对战', W / 2, 495, 28, '#fff');
+    this.drawOutlinedText('按 [ 1 ] 单人闯关', W / 2, H * 0.66, 28, '#fff');
+    this.drawOutlinedText('按 [ 2 ] 双人对战', W / 2, H * 0.725, 28, '#fff');
     ctx.globalAlpha = 1;
-    this.drawOutlinedText('单人：方向键移动 · 空格放泡泡 · 炸光所有敌人过关', W / 2, 560, 17, '#8b93b8');
-    this.drawOutlinedText('对战：P1 方向键+空格 ｜ P2 WASD+F · 三局两胜制（先胜3回合）', W / 2, 590, 17, '#8b93b8');
-    this.drawOutlinedText('吃道具：泡泡+1 · 火力+1 · 速度+1 · 踢鞋 · 护盾 · 遥控引爆器', W / 2, 620, 17, '#8b93b8');
-    this.drawOutlinedText('踢鞋：顶着泡泡走把它踢飞 ｜ 小心别被自己的泡泡炸到！', W / 2, 645, 15, '#8b93b8');
+    this.drawOutlinedText('单人：方向键移动 · 空格放泡泡 · 炸光所有敌人过关', W / 2, H * 0.82, 17, '#8b93b8');
+    this.drawOutlinedText('对战：P1 方向键+空格 ｜ P2 WASD+F · 三局两胜制（先胜3回合）', W / 2, H * 0.865, 17, '#8b93b8');
+    this.drawOutlinedText('吃道具：泡泡+1 · 火力+1 · 速度+1 · 踢鞋 · 护盾 · 遥控引爆器', W / 2, H * 0.91, 17, '#8b93b8');
+    this.drawOutlinedText('踢鞋：顶着泡泡走把它踢飞 ｜ 小心别被自己的泡泡炸到！', W / 2, H * 0.95, 15, '#8b93b8');
   },
 };
 
 /* ---------- 主循环 ---------- */
 let last = performance.now();
+let lastWinW = innerWidth, lastWinH = innerHeight;
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
+  // 兜底：某些环境（内嵌视口模拟）不派发 resize 事件，手动检测窗口尺寸变化
+  if (innerWidth !== lastWinW || innerHeight !== lastWinH) {
+    lastWinW = innerWidth; lastWinH = innerHeight;
+    fitCanvas();
+    Game.onResize();
+  }
   Game.update(dt);
   Game.draw();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
+// 窗口尺寸变化 → 场地比例跟随重建（fitCanvas 内部已重算 COLS/ROWS）
+window.addEventListener('resize', () => Game.onResize());
+if (window.visualViewport) window.visualViewport.addEventListener('resize', () => Game.onResize());
