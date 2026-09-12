@@ -1308,6 +1308,115 @@ const Game = {
     ctx.fillText(label, xc, yc + 0.5);
   },
 
+  /* ---- 标题画面右侧的海报主视觉：漂浮的战斗小岛 ---- */
+  drawPoster(t) {
+    const px = W * 0.70, py = H * 0.50;
+    const s = Math.min(W * 0.42 / 330, H * 0.60 / 300);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-0.045);
+    ctx.scale(s, s);
+
+    // 背光光晕
+    const glow = ctx.createRadialGradient(0, -20, 30, 0, 0, 280);
+    glow.addColorStop(0, 'rgba(255,205,100,0.20)');
+    glow.addColorStop(0.5, 'rgba(130,150,255,0.10)');
+    glow.addColorStop(1, 'rgba(130,150,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0, 0, 280, 0, Math.PI * 2); ctx.fill();
+
+    // 漂浮小岛：草地瓦片 + 土层底座
+    const T = 46, cols = 6, rows = 4;
+    const ox = -cols * T / 2, oy = -rows * T / 2 - 6;
+    ctx.fillStyle = '#4e3826';
+    this.roundRect(ox + 8, oy + rows * T - 10, cols * T - 16, 48, 18); ctx.fill();
+    ctx.fillStyle = '#3c2b1d';
+    this.roundRect(ox + 30, oy + rows * T + 24, cols * T - 60, 34, 14); ctx.fill();
+
+    const stoneSet = new Set(['0,0', '5,0', '0,3', '5,3', '2,1', '4,2']);
+    const softSet = new Set(['1,0', '3,1', '1,2', '4,0', '2,3']);
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const x = ox + c * T, y = oy + r * T;
+        if (stoneSet.has(c + ',' + r)) {
+          ctx.fillStyle = '#5a6579'; this.roundRect(x + 1, y + 1, T - 2, T - 2, 8); ctx.fill();
+          ctx.fillStyle = '#6d7891'; this.roundRect(x + 3, y + 3, T - 6, T - 12, 7); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,.14)';
+          this.roundRect(x + 7, y + 6, T - 22, 7, 3.5); ctx.fill();
+        } else if (softSet.has(c + ',' + r)) {
+          ctx.fillStyle = '#a9713d'; this.roundRect(x + 2, y + 2, T - 4, T - 4, 7); ctx.fill();
+          ctx.fillStyle = '#c68a4e'; this.roundRect(x + 4, y + 4, T - 8, T - 14, 6); ctx.fill();
+          ctx.strokeStyle = '#8a5a30'; ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(x + 6, y + T / 2 - 2); ctx.lineTo(x + T - 6, y + T / 2 - 2);
+          ctx.moveTo(x + T / 2, y + 6); ctx.lineTo(x + T / 2, y + T - 7);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = (c + r) % 2 ? '#7ec850' : '#74bf4a';
+          ctx.fillRect(x, y, T, T);
+        }
+      }
+
+    const icy = oy + rows * T / 2;
+
+    // 大泡泡（引信火花 + 脉冲）
+    const pulse = 1 + Math.sin(t * 7) * 0.05;
+    ctx.save();
+    ctx.translate(40, icy - 6);
+    ctx.scale(pulse, pulse);
+    const bg2 = ctx.createRadialGradient(-6, -8, 4, 0, 0, 26);
+    bg2.addColorStop(0, '#5a6b8c'); bg2.addColorStop(1, '#1c2333');
+    ctx.fillStyle = bg2;
+    ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.beginPath(); ctx.ellipse(-9, -10, 6, 3.4, -0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#caa06a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, -24); ctx.quadraticCurveTo(8, -34, 14, -31); ctx.stroke();
+    const sp = 1 + Math.sin(t * 18) * 0.5;
+    ctx.fillStyle = '#ffd23d';
+    ctx.beginPath(); ctx.arc(14, -31, 4.5 * sp, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // 右上角爆闪
+    const eb = 0.75 + Math.sin(t * 9) * 0.25;
+    ctx.save();
+    ctx.translate(150, oy - 34);
+    ctx.scale(eb, eb);
+    const eg = ctx.createRadialGradient(0, 0, 4, 0, 0, 60);
+    eg.addColorStop(0, 'rgba(255,248,208,0.95)');
+    eg.addColorStop(0.4, 'rgba(255,210,61,0.75)');
+    eg.addColorStop(1, 'rgba(255,107,61,0)');
+    ctx.fillStyle = eg;
+    ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,230,120,0.8)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for (let a = 0; a < 8; a++) {
+      const ang = a * Math.PI / 4 + t * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(ang) * 26, Math.sin(ang) * 26);
+      ctx.lineTo(Math.cos(ang) * 44, Math.sin(ang) * 44);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 角色：蓝方追击、紫方逃窜
+    this.drawChar({ x: -90, y: icy + 4, alive: true, dying: 0, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: t, moving: true, isAI: false, name: 'P1' });
+    this.drawChar({ x: 118, y: icy - 28, alive: true, dying: 0, color: '#8a5cc9', face: { x: -1, y: 0 }, anim: t * 1.3, moving: true, isAI: true });
+
+    // 漂浮的踢鞋道具
+    ctx.save();
+    ctx.translate(-150, oy - 30 + Math.sin(t * 2.2) * 6);
+    ctx.fillStyle = 'rgba(184,134,59,0.92)';
+    ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.3)';
+    ctx.beginPath(); ctx.arc(-5, -5, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    this.roundRect(-7, -8, 5, 9, 2); ctx.fill();
+    this.roundRect(-7, -2, 9, 4, 2); ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  },
+
   drawMenu() {
     const t = this.time;
     /* ---- 全屏深色渐变 ---- */
@@ -1321,7 +1430,7 @@ const Game = {
 
     /* ---- 舞台光束 ---- */
     ctx.save();
-    ctx.translate(W / 2, -H * 0.25);
+    ctx.translate(W * 0.30, -H * 0.25);
     for (let i = 0; i < 4; i++) {
       ctx.save();
       ctx.rotate(Math.sin(t * 0.15 + i * 1.7) * 0.22 + (i - 1.5) * 0.45);
@@ -1353,148 +1462,77 @@ const Game = {
     }
     ctx.globalAlpha = 1;
 
-    /* ---- LOGO ---- */
-    const ly = H * 0.20;
-    const float = Math.sin(t * 1.6) * 5;
+    /* ---- 右侧海报主视觉 ---- */
+    if (W >= 980) this.drawPoster(t);
+
+    /* ---- 左侧 LOGO ---- */
+    const mx = Math.max(48, W * 0.07);
+    const ly = H * 0.19;
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // 眉题
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.font = `bold ${Math.round(H * 0.024 + 8)}px "Microsoft YaHei", sans-serif`;
     ctx.fillStyle = 'rgba(255,214,90,0.8)';
-    ctx.fillText('B U B B L E   B L A S T', W / 2, ly - H * 0.088);
-    // 主标题（辉光 + 金属渐变）
+    ctx.fillText('BUBBLE BLAST', mx, ly - H * 0.088);
     ctx.shadowColor = 'rgba(255,215,80,0.5)';
     ctx.shadowBlur = 36;
-    const lg = ctx.createLinearGradient(0, ly - H * 0.08, 0, ly + H * 0.08);
+    const lg = ctx.createLinearGradient(0, ly - H * 0.07, 0, ly + H * 0.07);
     lg.addColorStop(0, '#fff8d8'); lg.addColorStop(0.45, '#ffdf6b'); lg.addColorStop(1, '#eda43c');
     ctx.fillStyle = lg;
-    ctx.font = `bold ${Math.round(H * 0.13)}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText('泡 泡 堂', W / 2, ly + float);
+    ctx.font = `bold ${Math.round(H * 0.115)}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText('泡泡堂', mx, ly + Math.sin(t * 1.6) * 4);
     ctx.shadowBlur = 0;
     ctx.restore();
-    // 分隔线 + 副标题
-    const sy = ly + H * 0.098;
-    ctx.strokeStyle = 'rgba(255,214,90,0.45)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 180, sy); ctx.lineTo(W / 2 - 95, sy);
-    ctx.moveTo(W / 2 + 95, sy); ctx.lineTo(W / 2 + 180, sy);
-    ctx.stroke();
-    this.drawOutlinedText('Q 版 复 刻 · MODERN REMAKE', W / 2, sy, Math.max(14, H * 0.026), '#9fd6ff');
+    ctx.fillStyle = '#ffd23d';
+    ctx.fillRect(mx + 4, ly + H * 0.072, 52, 4);
 
-    /* ---- 吉祥物 ---- */
-    const myY = H * 0.44;
-    const m1 = { x: W / 2 - 120, y: myY + Math.sin(t * 2) * 6, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: t, moving: true, isAI: false, name: 'P1' };
-    const m2 = { x: W / 2 + 120, y: myY + Math.cos(t * 2) * 6, color: '#e05b5b', face: { x: -1, y: 0 }, anim: t, moving: true, isAI: false, name: 'P2' };
-    for (const m of [m1, m2]) {
-      ctx.save(); ctx.translate(m.x, m.y);
-      const r = 19;
-      ctx.fillStyle = 'rgba(0,0,0,.3)';
-      ctx.beginPath(); ctx.ellipse(0, r + 6, r * 0.8, r * 0.28, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowColor = m.color; ctx.shadowBlur = 22;
-      const mg = ctx.createRadialGradient(-5, -7, 3, 0, 0, r + 4);
-      mg.addColorStop(0, '#fff'); mg.addColorStop(0.3, m.color); mg.addColorStop(1, this.shade(m.color, -35));
-      ctx.fillStyle = mg;
-      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2; ctx.stroke();
-      for (const s of [-1, 1]) {
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.ellipse(s * 6.5, -5, 6, 7.2, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#222';
-        ctx.beginPath(); ctx.arc(s * 6.5 + (s > 0 ? 1.6 : -1.6), -5, 2.7, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(s * 6.5 + (s > 0 ? 0.8 : -2.4), -7, 1.1, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.fillStyle = 'rgba(255,120,140,.55)';
-      ctx.beginPath(); ctx.ellipse(-11.5, 3.5, 3.6, 2.4, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(11.5, 3.5, 3.6, 2.4, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(0, 3.5, 4, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
-      ctx.restore();
-    }
-
-    /* ---- 菜单卡片 ---- */
+    /* ---- 左侧竖排菜单选择器 ---- */
     const items = [
-      { title: '单人闯关', en: 'CAMPAIGN', desc: '挑战 AI 敌人 · 无限关卡', color: '#4f8fdc' },
-      { title: '双人对战', en: 'VERSUS 1v1', desc: '同屏对决 · 先胜三回合', color: '#e05b5b' },
+      { title: '单人闯关', desc: '挑战 AI 敌人 · 关卡无限', color: '#4f8fdc' },
+      { title: '双人对战', desc: '同屏 1v1 · 先胜三回合', color: '#e05b5b' },
     ];
-    const cardW = Math.min(W * 0.42, 380);
-    const cardH = Math.min(H * 0.15, 86);
-    const gap = 24;
-    const totalW = cardW * 2 + gap;
-    const cardY = H * 0.565;
+    const rowW = Math.min(W * 0.30, 320);
+    const rowH = Math.min(H * 0.115, 78);
+    const listY = H * 0.40;
     this.menuRects = [];
     items.forEach((it, i) => {
       const selected = this.menuIndex === i || this.hoverIndex === i;
-      const x = W / 2 - totalW / 2 + i * (cardW + gap);
-      const y = cardY + Math.sin(t * 2 + i * 2.5) * 2.5;
-      this.menuRects.push({ x, y: cardY, w: cardW, h: cardH });
-      ctx.save();
-      if (selected) { ctx.shadowColor = it.color; ctx.shadowBlur = 28; }
-      ctx.fillStyle = selected ? 'rgba(40,52,92,0.95)' : 'rgba(22,28,54,0.72)';
-      this.roundRect(x, y, cardW, cardH, 14); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = selected ? it.color : 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = selected ? 2.5 : 1.5;
-      this.roundRect(x, y, cardW, cardH, 14); ctx.stroke();
-      // 左侧迷你角色
-      ctx.save();
-      ctx.translate(x + 36, y + cardH / 2);
-      ctx.fillStyle = 'rgba(0,0,0,.25)';
-      ctx.beginPath(); ctx.ellipse(0, 17, 11, 4, 0, 0, Math.PI * 2); ctx.fill();
-      const mg = ctx.createRadialGradient(-4, -5, 2, 0, 0, 18);
-      mg.addColorStop(0, '#fff'); mg.addColorStop(0.3, it.color); mg.addColorStop(1, this.shade(it.color, -35));
-      ctx.fillStyle = mg;
-      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.ellipse(-4, -2.5, 3.4, 4.2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(4, -2.5, 3.4, 4.2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(-4, -2.2, 1.6, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(4, -2.2, 1.6, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-      // 选中指示箭头
+      const y = listY + i * rowH;
+      this.menuRects.push({ x: mx - 18, y, w: rowW + 36, h: rowH - 12 });
       if (selected) {
-        const ax = x - 20 + Math.sin(t * 6) * 3;
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        this.roundRect(mx - 18, y, rowW + 36, rowH - 12, 12); ctx.fill();
+        ctx.fillStyle = it.color;
+        ctx.shadowColor = it.color; ctx.shadowBlur = 14;
+        this.roundRect(mx - 18, y + 8, 5, rowH - 28, 2.5); ctx.fill();
+        ctx.shadowBlur = 0;
+        const ax = mx - 40 + Math.sin(t * 6) * 3;
         ctx.fillStyle = it.color;
         ctx.beginPath();
-        ctx.moveTo(ax, y + cardH / 2 - 8); ctx.lineTo(ax + 12, y + cardH / 2); ctx.lineTo(ax, y + cardH / 2 + 8);
+        ctx.moveTo(ax, y + (rowH - 12) / 2 - 8); ctx.lineTo(ax + 12, y + (rowH - 12) / 2); ctx.lineTo(ax, y + (rowH - 12) / 2 + 8);
         ctx.closePath(); ctx.fill();
       }
-      // 文案
-      this.drawOutlinedText(it.title, x + 64, y + cardH * 0.32, 23, selected ? '#ffe066' : '#dfe6ff', 'left');
-      this.drawOutlinedText(it.desc, x + 64, y + cardH * 0.70, 14, selected ? '#aab7e8' : '#7d86ad', 'left');
-      this.drawOutlinedText(it.en, x + cardW - 14, y + cardH / 2, 12, selected ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.22)', 'right');
-      ctx.restore();
+      this.drawOutlinedText(it.title, mx, y + (rowH - 12) * 0.30, 26, selected ? '#ffe066' : '#c9d2f2', 'left');
+      this.drawOutlinedText(it.desc, mx, y + (rowH - 12) * 0.72, 14, selected ? '#9aa8d8' : '#667199', 'left');
     });
 
-    /* ---- 键帽按键提示 ---- */
-    const fy = H * 0.90;
+    /* ---- 键帽按键提示（左对齐） ---- */
+    const ky = listY + rowH * 2 + H * 0.025;
     const segs = [
       { caps: ['↑', '↓'], label: '选择' },
       { caps: ['Enter'], label: '确认' },
-      { caps: ['1'], label: '单人' },
-      { caps: ['2'], label: '对战' },
       { caps: ['V'], label: '全屏' },
       { caps: ['M'], label: '音效' },
     ];
     ctx.font = '12px "Microsoft YaHei", sans-serif';
-    let total = 0;
-    const widths = segs.map(s => {
-      const w = s.caps.length * 30 + ctx.measureText(s.label).width + 14 + 26;
-      total += w;
-      return w;
-    });
-    let fx = W / 2 - total / 2;
-    segs.forEach((s, i) => {
+    let fx = mx;
+    segs.forEach(s => {
       let x = fx;
-      for (const c of s.caps) { this.drawKeycap(x + 13, fy, c); x += 30; }
+      for (const c of s.caps) { this.drawKeycap(x + 13, ky, c); x += 30; }
       ctx.fillStyle = 'rgba(200,208,236,0.6)';
       ctx.font = '12px "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(s.label, x + 8, fy + 1);
-      fx += widths[i];
+      ctx.fillText(s.label, x + 8, ky + 1);
+      fx = x + 8 + ctx.measureText(s.label).width + 30;
     });
 
     /* ---- 页脚 ---- */
@@ -1502,8 +1540,6 @@ const Game = {
     ctx.font = '11px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('v1.0.0', 14, H - 14);
-    ctx.textAlign = 'right';
-    ctx.fillText('BubbleBlast · 纯 Canvas 打造 · 无任何依赖', W - 14, H - 14);
 
     /* ---- 电影感暗角 ---- */
     ctx.save();
