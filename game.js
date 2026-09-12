@@ -60,6 +60,7 @@ initAssets();
 // 游戏画面在画布内等比缩放居中，按物理像素渲染 → 任何尺寸下都是高清矢量
 // viewRect 记录游戏坐标系下的可见范围（可以超出 0..W / 0..H，用于背景延伸）
 let viewRect = { x0: 0, y0: 0, x1: W, y1: H };
+let viewScale = 1, viewOffX = 0, viewOffY = 0;
 function fitCanvas() {
   setFieldSize();
   const dpr = window.devicePixelRatio || 1;
@@ -69,6 +70,7 @@ function fitCanvas() {
   const offX = (cvs.width - W * scale) / 2;
   const offY = (cvs.height - H * scale) / 2;
   ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  viewScale = scale; viewOffX = offX; viewOffY = offY;
   viewRect = {
     x0: -offX / scale,
     y0: -offY / scale,
@@ -89,6 +91,26 @@ document.addEventListener('fullscreenchange', () => {
   fitCanvas();
 });
 cvs.addEventListener('dblclick', toggleFullscreen);
+
+/* ---- 菜单鼠标支持：悬停高亮 + 点击进入 ---- */
+function menuPosFromEvent(e) {
+  const rect = cvs.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (cvs.width / rect.width);
+  const py = (e.clientY - rect.top) * (cvs.height / rect.height);
+  return { x: (px - viewOffX) / viewScale, y: (py - viewOffY) / viewScale };
+}
+cvs.addEventListener('mousemove', e => {
+  if (Game.state !== 'menu') { cvs.style.cursor = 'default'; return; }
+  const p = menuPosFromEvent(e);
+  Game.hoverIndex = Game.menuRects.findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
+  cvs.style.cursor = Game.hoverIndex >= 0 ? 'pointer' : 'default';
+});
+cvs.addEventListener('click', e => {
+  if (Game.state !== 'menu') return;
+  const p = menuPosFromEvent(e);
+  const i = Game.menuRects.findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
+  if (i >= 0) { Game.menuIndex = i; Game.confirmMenu(); }
+});
 fitCanvas();
 
 /* ---------- 工具 ---------- */
@@ -135,6 +157,8 @@ const Sfx = {
   pickup()  { this.tone(523, 0.07, 'square', 0.1); setTimeout(() => this.tone(784, 0.1, 'square', 0.1), 70); },
   die()     { this.tone(440, 0.5, 'sawtooth', 0.15, -330); },
   kill()    { this.tone(660, 0.12, 'square', 0.1, -200); },
+  move()    { this.tone(340, 0.05, 'square', 0.06); },
+  confirm() { this.tone(523, 0.09, 'square', 0.1); setTimeout(() => this.tone(784, 0.12, 'square', 0.1), 80); },
   win()     { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'square', 0.12), i * 120)); },
   lose()    { [392, 330, 262, 196].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, 'sawtooth', 0.12), i * 160)); },
 };
@@ -260,6 +284,7 @@ const Game = {
   level: 1, round: 1,
   time: 0, msg: '', msgT: 0, shakeT: 0,
   respawnT: 0, roundEndT: 0,
+  menuIndex: 0, hoverIndex: -1, menuRects: [],
 
   reset(mode) {
     this.mode = mode;
@@ -367,9 +392,14 @@ const Game = {
 
   onKey(k) {
     if (k === 'v' || k === 'V') toggleFullscreen();
+    if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
     if (this.state === 'menu') {
-      if (k === '1') this.reset('single');
-      if (k === '2') this.reset('versus');
+      const n = 2;
+      if (k === 'ArrowUp' || k === 'w' || k === 'W') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); }
+      else if (k === 'ArrowDown' || k === 's' || k === 'S') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); }
+      else if (k === 'Enter' || k === ' ') this.confirmMenu();
+      else if (k === '1') { this.menuIndex = 0; this.confirmMenu(); }
+      else if (k === '2') { this.menuIndex = 1; this.confirmMenu(); }
       return;
     }
     if (this.state === 'play' || this.state === 'pause') {
@@ -390,6 +420,11 @@ const Game = {
       return;
     }
     if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
+  },
+
+  confirmMenu() {
+    Sfx.confirm();
+    this.reset(this.menuIndex === 0 ? 'single' : 'versus');
   },
 
   /* ---------- 泡泡 ---------- */
@@ -1262,65 +1297,223 @@ const Game = {
     }
   },
 
+  drawKeycap(xc, yc, label, w = 26) {
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    this.roundRect(xc - w / 2, yc - 11, w, 22, 5); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1;
+    this.roundRect(xc - w / 2, yc - 11, w, 22, 5); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.font = 'bold 11px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, xc, yc + 0.5);
+  },
+
   drawMenu() {
-    // 背景（铺满整个物理画布，边缘无缝）
+    const t = this.time;
+    /* ---- 全屏深色渐变 ---- */
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const gb = ctx.createLinearGradient(0, 0, 0, cvs.height);
-    gb.addColorStop(0, '#2b3a67'); gb.addColorStop(1, '#1d2547');
+    gb.addColorStop(0, '#131a32'); gb.addColorStop(0.55, '#1a2342'); gb.addColorStop(1, '#0d1124');
     ctx.fillStyle = gb;
     ctx.fillRect(0, 0, cvs.width, cvs.height);
     ctx.restore();
-    // 漂浮泡泡装饰
-    for (let i = 0; i < 14; i++) {
-      const t = this.time * 0.4 + i * 2.1;
-      const bx = (i * 97) % W, by = H - ((t * 40 + i * 137) % (H + 80)) ;
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = ['#7ea8ff', '#ff8fa3', '#8fe0a0'][i % 3];
-      ctx.beginPath(); ctx.arc(bx, by, 14 + (i % 4) * 7, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 1;
+
+    /* ---- 舞台光束 ---- */
+    ctx.save();
+    ctx.translate(W / 2, -H * 0.25);
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate(Math.sin(t * 0.15 + i * 1.7) * 0.22 + (i - 1.5) * 0.45);
+      const bw = W * 0.085;
+      const g2 = ctx.createLinearGradient(0, 0, 0, H * 1.5);
+      g2.addColorStop(0, 'rgba(130,165,255,0.09)');
+      g2.addColorStop(1, 'rgba(130,165,255,0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath();
+      ctx.moveTo(-bw * 0.22, 0); ctx.lineTo(bw * 0.22, 0);
+      ctx.lineTo(bw, H * 1.5); ctx.lineTo(-bw, H * 1.5);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
     }
-    // 标题（位置随 H 比例缩放，适配任意场地高度）
-    const bounce = Math.sin(this.time * 3) * 8;
-    this.drawOutlinedText('泡 泡 堂', W / 2, H * 0.22 + bounce, 72, '#ffe066');
-    this.drawOutlinedText('· Q 版 复 刻 ·', W / 2, H * 0.315 + bounce, 24, '#9fd6ff');
-    // 两个吉祥物
-    const my = H * 0.485;
-    const m1 = { x: W / 2 - 150, y: my + Math.sin(this.time * 3) * 6, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P1' };
-    const m2 = { x: W / 2 + 150, y: my + Math.cos(this.time * 3) * 6, color: '#e05b5b', face: { x: -1, y: 0 }, anim: this.time, moving: true, isAI: false, name: 'P2' };
+    ctx.restore();
+
+    /* ---- 上升的柔光泡泡 ---- */
+    for (let i = 0; i < 16; i++) {
+      const tt = t * 0.22 + i * 2.3;
+      const bx = (i * 131.7) % W;
+      const by = H - ((tt * 34 + i * 173) % (H + 120));
+      const r = 10 + (i % 5) * 9;
+      ctx.globalAlpha = 0.05 + (i % 3) * 0.03;
+      const rg = ctx.createRadialGradient(bx, by, 1, bx, by, r);
+      rg.addColorStop(0, 'rgba(175,205,255,0.95)');
+      rg.addColorStop(1, 'rgba(175,205,255,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    /* ---- LOGO ---- */
+    const ly = H * 0.20;
+    const float = Math.sin(t * 1.6) * 5;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // 眉题
+    ctx.font = `bold ${Math.round(H * 0.024 + 8)}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = 'rgba(255,214,90,0.8)';
+    ctx.fillText('B U B B L E   B L A S T', W / 2, ly - H * 0.088);
+    // 主标题（辉光 + 金属渐变）
+    ctx.shadowColor = 'rgba(255,215,80,0.5)';
+    ctx.shadowBlur = 36;
+    const lg = ctx.createLinearGradient(0, ly - H * 0.08, 0, ly + H * 0.08);
+    lg.addColorStop(0, '#fff8d8'); lg.addColorStop(0.45, '#ffdf6b'); lg.addColorStop(1, '#eda43c');
+    ctx.fillStyle = lg;
+    ctx.font = `bold ${Math.round(H * 0.13)}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText('泡 泡 堂', W / 2, ly + float);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    // 分隔线 + 副标题
+    const sy = ly + H * 0.098;
+    ctx.strokeStyle = 'rgba(255,214,90,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 180, sy); ctx.lineTo(W / 2 - 95, sy);
+    ctx.moveTo(W / 2 + 95, sy); ctx.lineTo(W / 2 + 180, sy);
+    ctx.stroke();
+    this.drawOutlinedText('Q 版 复 刻 · MODERN REMAKE', W / 2, sy, Math.max(14, H * 0.026), '#9fd6ff');
+
+    /* ---- 吉祥物 ---- */
+    const myY = H * 0.44;
+    const m1 = { x: W / 2 - 120, y: myY + Math.sin(t * 2) * 6, color: '#4f8fdc', face: { x: 1, y: 0 }, anim: t, moving: true, isAI: false, name: 'P1' };
+    const m2 = { x: W / 2 + 120, y: myY + Math.cos(t * 2) * 6, color: '#e05b5b', face: { x: -1, y: 0 }, anim: t, moving: true, isAI: false, name: 'P2' };
     for (const m of [m1, m2]) {
       ctx.save(); ctx.translate(m.x, m.y);
-      const r = 22;
-      const mg = ctx.createRadialGradient(-6, -10, 4, 0, 0, r + 6);
-      mg.addColorStop(0, '#fff'); mg.addColorStop(0.25, m.color); mg.addColorStop(1, this.shade(m.color, -35));
+      const r = 19;
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      ctx.beginPath(); ctx.ellipse(0, r + 6, r * 0.8, r * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = m.color; ctx.shadowBlur = 22;
+      const mg = ctx.createRadialGradient(-5, -7, 3, 0, 0, r + 4);
+      mg.addColorStop(0, '#fff'); mg.addColorStop(0.3, m.color); mg.addColorStop(1, this.shade(m.color, -35));
       ctx.fillStyle = mg;
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
       ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2; ctx.stroke();
       for (const s of [-1, 1]) {
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.ellipse(s * 8, -6, 7, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(s * 6.5, -5, 6, 7.2, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#222';
-        ctx.beginPath(); ctx.arc(s * 8 + (s > 0 ? 2 : -2), -6, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(s * 6.5 + (s > 0 ? 1.6 : -1.6), -5, 2.7, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(s * 8 + (s > 0 ? 1 : -3), -8.5, 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(s * 6.5 + (s > 0 ? 0.8 : -2.4), -7, 1.1, 0, Math.PI * 2); ctx.fill();
       }
       ctx.fillStyle = 'rgba(255,120,140,.55)';
-      ctx.beginPath(); ctx.ellipse(-14, 4, 4.2, 2.8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(14, 4, 4.2, 2.8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(0, 4, 4.5, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(-11.5, 3.5, 3.6, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(11.5, 3.5, 3.6, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(0, 3.5, 4, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
       ctx.restore();
     }
-    // 菜单
-    const flash = 0.7 + Math.sin(this.time * 4) * 0.3;
-    ctx.globalAlpha = flash;
-    this.drawOutlinedText('按 [ 1 ] 单人闯关', W / 2, H * 0.66, 28, '#fff');
-    this.drawOutlinedText('按 [ 2 ] 双人对战', W / 2, H * 0.725, 28, '#fff');
-    ctx.globalAlpha = 1;
-    this.drawOutlinedText('单人：方向键移动 · 空格放泡泡 · 炸光所有敌人过关', W / 2, H * 0.82, 17, '#8b93b8');
-    this.drawOutlinedText('对战：P1 方向键+空格 ｜ P2 WASD+F · 三局两胜制（先胜3回合）', W / 2, H * 0.865, 17, '#8b93b8');
-    this.drawOutlinedText('吃道具：泡泡+1 · 火力+1 · 速度+1 · 踢鞋 · 护盾 · 遥控引爆器', W / 2, H * 0.91, 17, '#8b93b8');
-    this.drawOutlinedText('踢鞋：顶着泡泡走把它踢飞 ｜ 小心别被自己的泡泡炸到！', W / 2, H * 0.95, 15, '#8b93b8');
+
+    /* ---- 菜单卡片 ---- */
+    const items = [
+      { title: '单人闯关', en: 'CAMPAIGN', desc: '挑战 AI 敌人 · 无限关卡', color: '#4f8fdc' },
+      { title: '双人对战', en: 'VERSUS 1v1', desc: '同屏对决 · 先胜三回合', color: '#e05b5b' },
+    ];
+    const cardW = Math.min(W * 0.42, 380);
+    const cardH = Math.min(H * 0.15, 86);
+    const gap = 24;
+    const totalW = cardW * 2 + gap;
+    const cardY = H * 0.565;
+    this.menuRects = [];
+    items.forEach((it, i) => {
+      const selected = this.menuIndex === i || this.hoverIndex === i;
+      const x = W / 2 - totalW / 2 + i * (cardW + gap);
+      const y = cardY + Math.sin(t * 2 + i * 2.5) * 2.5;
+      this.menuRects.push({ x, y: cardY, w: cardW, h: cardH });
+      ctx.save();
+      if (selected) { ctx.shadowColor = it.color; ctx.shadowBlur = 28; }
+      ctx.fillStyle = selected ? 'rgba(40,52,92,0.95)' : 'rgba(22,28,54,0.72)';
+      this.roundRect(x, y, cardW, cardH, 14); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = selected ? it.color : 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = selected ? 2.5 : 1.5;
+      this.roundRect(x, y, cardW, cardH, 14); ctx.stroke();
+      // 左侧迷你角色
+      ctx.save();
+      ctx.translate(x + 36, y + cardH / 2);
+      ctx.fillStyle = 'rgba(0,0,0,.25)';
+      ctx.beginPath(); ctx.ellipse(0, 17, 11, 4, 0, 0, Math.PI * 2); ctx.fill();
+      const mg = ctx.createRadialGradient(-4, -5, 2, 0, 0, 18);
+      mg.addColorStop(0, '#fff'); mg.addColorStop(0.3, it.color); mg.addColorStop(1, this.shade(it.color, -35));
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(-4, -2.5, 3.4, 4.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(4, -2.5, 3.4, 4.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.arc(-4, -2.2, 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, -2.2, 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // 选中指示箭头
+      if (selected) {
+        const ax = x - 20 + Math.sin(t * 6) * 3;
+        ctx.fillStyle = it.color;
+        ctx.beginPath();
+        ctx.moveTo(ax, y + cardH / 2 - 8); ctx.lineTo(ax + 12, y + cardH / 2); ctx.lineTo(ax, y + cardH / 2 + 8);
+        ctx.closePath(); ctx.fill();
+      }
+      // 文案
+      this.drawOutlinedText(it.title, x + 64, y + cardH * 0.32, 23, selected ? '#ffe066' : '#dfe6ff', 'left');
+      this.drawOutlinedText(it.desc, x + 64, y + cardH * 0.70, 14, selected ? '#aab7e8' : '#7d86ad', 'left');
+      this.drawOutlinedText(it.en, x + cardW - 14, y + cardH / 2, 12, selected ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.22)', 'right');
+      ctx.restore();
+    });
+
+    /* ---- 键帽按键提示 ---- */
+    const fy = H * 0.90;
+    const segs = [
+      { caps: ['↑', '↓'], label: '选择' },
+      { caps: ['Enter'], label: '确认' },
+      { caps: ['1'], label: '单人' },
+      { caps: ['2'], label: '对战' },
+      { caps: ['V'], label: '全屏' },
+      { caps: ['M'], label: '音效' },
+    ];
+    ctx.font = '12px "Microsoft YaHei", sans-serif';
+    let total = 0;
+    const widths = segs.map(s => {
+      const w = s.caps.length * 30 + ctx.measureText(s.label).width + 14 + 26;
+      total += w;
+      return w;
+    });
+    let fx = W / 2 - total / 2;
+    segs.forEach((s, i) => {
+      let x = fx;
+      for (const c of s.caps) { this.drawKeycap(x + 13, fy, c); x += 30; }
+      ctx.fillStyle = 'rgba(200,208,236,0.6)';
+      ctx.font = '12px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.label, x + 8, fy + 1);
+      fx += widths[i];
+    });
+
+    /* ---- 页脚 ---- */
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.font = '11px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('v1.0.0', 14, H - 14);
+    ctx.textAlign = 'right';
+    ctx.fillText('BubbleBlast · 纯 Canvas 打造 · 无任何依赖', W - 14, H - 14);
+
+    /* ---- 电影感暗角 ---- */
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const vg = ctx.createRadialGradient(cvs.width / 2, cvs.height / 2, Math.min(cvs.width, cvs.height) * 0.38, cvs.width / 2, cvs.height / 2, Math.max(cvs.width, cvs.height) * 0.75);
+    vg.addColorStop(0, 'rgba(5,8,20,0)');
+    vg.addColorStop(1, 'rgba(5,8,20,0.5)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.restore();
   },
 };
 
