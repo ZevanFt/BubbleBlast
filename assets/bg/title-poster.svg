@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <!-- 背景渐变 -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a237e"/>
+      <stop offset="40%" stop-color="#283593"/>
+      <stop offset="100%" stop-color="#0d1540"/>
+    </linearGradient>
+    <!-- 霓虹渐变 -->
+    <linearGradient id="neonGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe066"/>
+      <stop offset="50%" stop-color="#ff6b3d"/>
+      <stop offset="100%" stop-color="#e05b5b"/>
+    </linearGradient>
+    <!-- 发光滤镜 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="bigGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- 泡泡渐变 -->
+    <radialGradient id="bubbleGrad" cx="35%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.7)"/>
+      <stop offset="40%" stop-color="rgba(100,200,255,0.3)"/>
+      <stop offset="100%" stop-color="rgba(40,80,180,0.1)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="800" height="600" fill="url(#bgGrad)"/>
+
+  <!-- 装饰性星星/光点 -->
+  <circle cx="100" cy="80" r="2" fill="#fff" opacity="0.8">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="250" cy="50" r="1.5" fill="#ffe066" opacity="0.9">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="600" cy="100" r="2" fill="#fff" opacity="0.6">
+    <animate attributeName="opacity" values="0.2;0.9;0.2" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="700" cy="55" r="1.5" fill="#ffd23d" opacity="0.7">
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="50" cy="200" r="1" fill="#fff" opacity="0.5">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="750" cy="200" r="1.5" fill="#ffe066" opacity="0.6">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="2.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="300" cy="30" r="1" fill="#fff" opacity="0.4">
+    <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- 背景泡泡 -->
+  <circle cx="120" cy="350" r="60" fill="url(#bubbleGrad)" opacity="0.3">
+    <animate attributeName="r" values="55;65;55" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="650" cy="400" r="80" fill="url(#bubbleGrad)" opacity="0.25">
+    <animate attributeName="r" values="70;85;70" dur="5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="500" cy="180" r="45" fill="url(#bubbleGrad)" opacity="0.2">
+    <animate attributeName="r" values="40;50;40" dur="3.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="200" cy="500" r="50" fill="url(#bubbleGrad)" opacity="0.2">
+    <animate attributeName="r" values="45;55;45" dur="4.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- 装饰性小泡泡 -->
+  <circle cx="60" cy="120" r="12" fill="rgba(100,200,255,0.15)"/>
+  <circle cx="740" cy="130" r="15" fill="rgba(100,200,255,0.15)"/>
+  <circle cx="450" cy="520" r="10" fill="rgba(100,200,255,0.1)"/>
+  <circle cx="350" cy="50" r="8" fill="rgba(100,200,255,0.12)"/>
+
+  <!-- 标题 -->
+  <text x="400" y="200" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="72" font-weight="bold" fill="url(#neonGrad)" filter="url(#bigGlow)" letter-spacing="8">
+    BubbleBlast
+  </text>
+
+  <!-- 副标题 -->
+  <text x="400" y="250" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#ffe066" opacity="0.9" letter-spacing="12">
+    Q版泡泡堂复刻
+  </text>
+
+  <!-- 装饰线 -->
+  <line x1="250" y1="270" x2="340" y2="270" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+  <circle cx="295" cy="270" r="3" fill="#ff6b3d"/>
+  <circle cx="295" cy="270" r="5" fill="none" stroke="#ffe066" stroke-width="1" opacity="0.5">
+    <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <line x1="460" y1="270" x2="550" y2="270" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+
+  <!-- 角色群像 -->
+  <g transform="translate(160, 340)" opacity="0.9">
+    <!-- P1 蓝色 -->
+    <circle cx="0" cy="0" r="28" fill="url(#bubbleGrad)" stroke="#4f8fdc" stroke-width="2"/>
+    <circle cx="0" cy="0" r="20" fill="#4f8fdc" opacity="0.8"/>
+    <circle cx="-5" cy="-3" r="5" fill="#fff"/><circle cx="-4" cy="-2" r="2.5" fill="#1a1a2e"/>
+    <circle cx="5" cy="-3" r="5" fill="#fff"/><circle cx="6" cy="-2" r="2.5" fill="#1a1a2e"/>
+    <circle cx="-8" cy="5" r="3" fill="rgba(255,120,140,0.5)"/>
+    <circle cx="8" cy="5" r="3" fill="rgba(255,120,140,0.5)"/>
+    <path d="M-6,8 Q0,12 6,8" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <rect x="-4" y="-10" width="8" height="6" rx="2" fill="#e05b5b"/>
+  </g>
+
+  <g transform="translate(400, 320)" opacity="0.9">
+    <!-- P2 红色 -->
+    <circle cx="0" cy="0" r="32" fill="url(#bubbleGrad)" stroke="#e05b5b" stroke-width="2"/>
+    <circle cx="0" cy="0" r="22" fill="#e05b5b" opacity="0.8"/>
+    <circle cx="-6" cy="-4" r="5.5" fill="#fff"/><circle cx="-5" cy="-3" r="2.8" fill="#1a1a2e"/>
+    <circle cx="6" cy="-4" r="5.5" fill="#fff"/><circle cx="7" cy="-3" r="2.8" fill="#1a1a2e"/>
+    <circle cx="-10" cy="6" r="3.5" fill="rgba(255,120,140,0.5)"/>
+    <circle cx="10" cy="6" r="3.5" fill="rgba(255,120,140,0.5)"/>
+    <path d="M-7,10 Q0,15 7,10" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M-8,-14 Q0,-22 8,-14" fill="none" stroke="#ffd23d" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(640, 350)" opacity="0.85">
+    <!-- E1 紫色 -->
+    <circle cx="0" cy="0" r="26" fill="url(#bubbleGrad)" stroke="#8a5cc9" stroke-width="2"/>
+    <circle cx="0" cy="0" r="18" fill="#8a5cc9" opacity="0.8"/>
+    <circle cx="-5" cy="-3" r="5" fill="#fff"/><circle cx="-4" cy="-2" r="2.5" fill="#1a1a2e"/>
+    <circle cx="5" cy="-3" r="5" fill="#fff"/><circle cx="6" cy="-2" r="2.5" fill="#1a1a2e"/>
+    <circle cx="-8" cy="5" r="3" fill="rgba(255,120,140,0.5)"/>
+    <circle cx="8" cy="5" r="3" fill="rgba(255,120,140,0.5)"/>
+    <path d="M-5,8 Q0,11 5,8 Q2,12 -2,12 Q-5,12 -5,8" fill="#2d1a4e" opacity="0.7"/>
+    <circle cx="-3" cy="-12" r="4" fill="#8a5cc9"/>
+    <circle cx="3" cy="-12" r="4" fill="#8a5cc9"/>
+  </g>
+
+  <g transform="translate(220, 370)" opacity="0.85">
+    <!-- E2 绿色 -->
+    <circle cx="0" cy="0" r="24" fill="url(#bubbleGrad)" stroke="#3fa65b" stroke-width="2"/>
+    <circle cx="0" cy="0" r="17" fill="#3fa65b" opacity="0.8"/>
+    <circle cx="-4" cy="-2" r="4.5" fill="#fff"/><circle cx="-3" cy="-1" r="2.2" fill="#1a1a2e"/>
+    <circle cx="4" cy="-2" r="4.5" fill="#fff"/><circle cx="5" cy="-1" r="2.2" fill="#1a1a2e"/>
+    <circle cx="-7" cy="4" r="2.8" fill="rgba(255,120,140,0.5)"/>
+    <circle cx="7" cy="4" r="2.8" fill="rgba(255,120,140,0.5)"/>
+    <path d="M-4,7 Q0,10 4,7" stroke="#1a1a2e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M-10,-8 Q-15,-16 -8,-18" fill="#3fa65b" opacity="0.7"/>
+    <circle cx="-10" cy="-8" r="3" fill="#5dbb6d" opacity="0.8"/>
+  </g>
+
+  <!-- 底部信息 -->
+  <text x="400" y="440" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="#6b7db3" letter-spacing="3">
+    方向键 / WASD 移动 · 空格 / F 放泡泡 · P 暂停
+  </text>
+
+  <!-- 闪烁提示 -->
+  <text x="400" y="480" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#ffe066" opacity="0.8">
+    按 Enter 开始游戏
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- 底部装饰线 -->
+  <line x1="300" y1="495" x2="500" y2="495" stroke="rgba(255,224,102,0.3)" stroke-width="1"/>
+
+  <!-- 左下角 Logo -->
+  <text x="30" y="580" font-family="Arial Black, sans-serif" font-size="12" font-weight="bold" fill="rgba(255,255,255,0.2)">BUBBLEBLAST</text>
+</svg>

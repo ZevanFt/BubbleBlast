@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <defs>
+    <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe066"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </linearGradient>
+    <filter id="starGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 星星 -->
+  <polygon points="20,4 23,14 33,14 25,21 28,31 20,25 12,31 15,21 7,14 17,14" fill="url(#starGrad)" filter="url(#starGlow)"/>
+  <!-- 光芒线 -->
+  <line x1="20" y1="1" x2="20" y2="0" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+  <line x1="20" y1="39" x2="20" y2="40" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+  <line x1="1" y1="20" x2="0" y2="20" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+  <line x1="39" y1="20" x2="40" y2="20" stroke="#ffe066" stroke-width="2" opacity="0.6"/>
+</svg>

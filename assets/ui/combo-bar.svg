@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24" width="120" height="24">
+  <defs>
+    <linearGradient id="comboGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff4081"/>
+      <stop offset="50%" stop-color="#ff6b3d"/>
+      <stop offset="100%" stop-color="#ffd23d"/>
+    </linearGradient>
+    <filter id="comboGlow" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 背景 -->
+  <rect x="0" y="0" width="120" height="24" rx="12" fill="rgba(0,0,0,0.4)"/>
+  <!-- 组合条 -->
+  <rect x="2" y="2" width="90" height="20" rx="10" fill="url(#comboGrad)" filter="url(#comboGlow)"/>
+  <!-- 火焰图标 -->
+  <text x="12" y="16" font-size="13" text-anchor="middle">🔥</text>
+  <!-- 文字 -->
+  <text x="60" y="16" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="12" font-weight="bold" fill="#fff">x5</text>
+  <!-- 箭头 -->
+  <polygon points="105,8 112,12 105,16" fill="#fff" opacity="0.7"/>
+</svg>

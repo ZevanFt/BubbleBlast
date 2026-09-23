@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <radialGradient id="doubleGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff4081" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ff4081" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="doubleBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff80ab"/>
+      <stop offset="100%" stop-color="#c51162"/>
+    </linearGradient>
+    <filter id="doubleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- 光晕 -->
+  <circle cx="24" cy="24" r="20" fill="url(#doubleGlow)"/>
+  <!-- 主体 -->
+  <circle cx="24" cy="24" r="17" fill="url(#doubleBody)" filter="url(#doubleShadow)"/>
+  <!-- 双弹指示 -->
+  <circle cx="19" cy="20" r="5" fill="#ff80ab" stroke="#fff" stroke-width="1"/>
+  <circle cx="29" cy="20" r="5" fill="#ff80ab" stroke="#fff" stroke-width="1"/>
+  <!-- 中心核 -->
+  <circle cx="24" cy="24" r="4" fill="#fff" opacity="0.8"/>
+  <circle cx="24" cy="24" r="2" fill="#ff4081"/>
+  <!-- 数字2 -->
+  <text x="24" y="27" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="10" font-weight="bold" fill="#fff">2</text>
+  <!-- 环绕光环 -->
+  <circle cx="24" cy="24" r="20" fill="none" stroke="#ff4081" stroke-width="1" opacity="0.5">
+    <animate attributeName="r" values="18;22;18" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <!-- 连接线 -->
+  <line x1="19" y1="20" x2="29" y2="20" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+</svg>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24" width="120" height="24">
+  <defs>
+    <linearGradient id="healthGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff6b7d"/>
+      <stop offset="100%" stop-color="#ff4757"/>
+    </linearGradient>
+    <linearGradient id="healthBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景条 -->
+  <rect x="0" y="2" width="120" height="20" rx="10" fill="url(#healthBg)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+  <!-- 已回复部分 -->
+  <rect x="2" y="4" width="70" height="16" rx="8" fill="url(#healthGrad)"/>
+  <!-- 高光 -->
+  <rect x="4" y="4" width="30" height="6" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <!-- 爱心图标 -->
+  <path d="M12,12 C12,8 16,6 20,8 C20,8 18,12 18,14 C18,16 16,18 14,18 C12,18 12,16 12,14Z" fill="#fff" opacity="0.9"/>
+  <!-- 文字 -->
+  <text x="100" y="16" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10" font-weight="bold" fill="#fff">3</text>
+</svg>

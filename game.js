@@ -26,7 +26,7 @@ function setFieldSize() {
 }
 
 const EMPTY = 0, STONE = 1, SOFT = 2;
-const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5;
+const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5, ITEM_PUNCH = 6, ITEM_MIRROR = 7, ITEM_BOOST = 8, ITEM_DOUBLE = 9, ITEM_PIERCE = 10, ITEM_STORM = 11;
 
 /* ---------- 地图主题（按关卡/回合轮换） ---------- */
 const THEMES = [
@@ -43,17 +43,33 @@ const ctx = cvs.getContext('2d');
 let assetsReady = false;
 const loader = document.getElementById('loader');
 const barFill = document.getElementById('barFill');
+const loadPercent = document.getElementById('loadPercent');
 
 Assets.onProgress((loaded, total) => {
-  barFill.style.width = Math.round(loaded / total * 100) + '%';
+  const pct = Math.round(loaded / total * 100);
+  barFill.style.width = pct + '%';
+  if (loadPercent) loadPercent.textContent = pct + '%';
 });
 
 async function initAssets() {
-  const count = await Assets.init();
+  try {
+    await Promise.race([
+      Assets.init(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))
+    ]);
+  } catch(e) {
+    console.warn('[Assets] init failed or timeout:', e);
+  }
   assetsReady = true;
-  setTimeout(() => { loader.classList.add('hidden'); }, 400);
+  // 立即移除加载屏
+  if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
 }
 initAssets();
+// 兜底：6秒后无论如何移除加载屏
+setTimeout(function() {
+  var l = document.getElementById('loader');
+  if (l && l.parentNode) l.parentNode.removeChild(l);
+}, 6500);
 
 /* ---------- 自适应缩放 & 全屏 ---------- */
 // 画布永远占满整个浏览器窗口（CSS flex 布局），
@@ -256,6 +272,8 @@ function makePlayer(tx, ty, color, name, isAI = false) {
     alive: true, dying: 0, dead: false,
     invincible: 0, anim: rand(0, 9),
     kick: false, shield: 0, remote: false,
+    punch: false, mirror: false, boost: false, double: false, pierce: false, storm: false,
+    punchTimer: 0, mirrorTimer: 0, boostTimer: 0, stormTimer: 0,
     face: { x: 0, y: 1 }, moving: false,
     lives: 3, score: 0,
   };
@@ -305,8 +323,23 @@ const Game = {
     } else {
       this.spawnEnemies();
     }
+    // 道具挑战模式：全道具池
+    if (mode === 'item-challenge') {
+      this.hidden = [];
+      const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM];
+      for (let i = 0; i < this.map.length; i++) {
+        if (this.map[i] === SOFT) {
+          this.hidden[i] = pool[randi(0, pool.length - 1)];
+        }
+      }
+    }
+    // 无尽模式：敌人越来越多
+    if (mode === 'endless') {
+      this.level = 1;
+    }
     this.state = 'play';
-    this.showMsg(mode === 'versus' ? `第 ${this.round} 回合 · 开始！` : `第 ${this.level} 关 · 开始！`);
+    const modeNames = { 'item-challenge': '道具挑战', 'endless': '无尽模式' };
+    this.showMsg(mode === 'versus' ? `第 ${this.round} 回合 · 开始！` : mode === 'item-challenge' ? '道具挑战 · 开始！' : mode === 'endless' ? '无尽模式 · 开始！' : `第 ${this.level} 关 · 开始！`);
   },
 
   nextLevel() {
@@ -318,6 +351,10 @@ const Game = {
     const p = this.players[0];
     p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
     p.alive = true; p.dead = false; p.invincible = 2; p.dying = 0;
+    p.bombActive = 0; p.bombMax = 1; p.fire = 2; p.speed = 150;
+    p.kick = false; p.shield = 0; p.remote = false;
+    p.punch = false; p.mirror = false; p.boost = false; p.double = false; p.pierce = false; p.storm = false;
+    p.punchTimer = 0; p.mirrorTimer = 0; p.boostTimer = 0; p.stormTimer = 0;
     this.spawnEnemies();
     this.state = 'play';
     this.showMsg(`第 ${this.level} 关 · 开始！`);
@@ -336,6 +373,8 @@ const Game = {
       p.alive = true; p.dead = false; p.invincible = 2; p.dying = 0;
       p.bombMax = 1; p.bombActive = 0; p.fire = 2; p.speed = 150;
       p.kick = false; p.shield = 0; p.remote = false;
+      p.punch = false; p.mirror = false; p.boost = false; p.double = false; p.pierce = false; p.storm = false;
+      p.punchTimer = 0; p.mirrorTimer = 0; p.boostTimer = 0; p.stormTimer = 0;
     });
     this.spawnItemsForVersus();
     this.state = 'play';
@@ -355,7 +394,7 @@ const Game = {
 
   spawnItemsForVersus() {
     // 对战模式：把部分软砖下埋道具
-    const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE];
+    const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM];
     let placed = 0;
     for (let i = 0; i < this.map.length && placed < 14; i++) {
       if (this.map[i] === SOFT && Math.random() < 0.3) {
@@ -370,23 +409,25 @@ const Game = {
 
   // 窗口尺寸变化 → 场地重新生成（保留生命/分数/道具进度）
   onResize() {
-    if (this.state === 'menu' || !this.map) return;
+    if (!this.map) return;
     this.hidden = [];
     this.map = genMap(this.mode);
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
-    if (this.mode === 'single') {
+    if (this.mode === 'single' || this.mode === 'item-challenge' || this.mode === 'endless') {
       this.spawnEnemies();
       const p = this.players[0];
       p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
       p.alive = true; p.dying = 0; p.invincible = 2;
-    } else {
+    } else if (this.mode === 'versus') {
       const spots = [[1, 1], [COLS - 2, ROWS - 2]];
       this.players.forEach((p, i) => {
         p.x = cx(spots[i][0]); p.y = cy(spots[i][1]);
         p.tx = spots[i][0]; p.ty = spots[i][1];
         p.alive = true; p.dying = 0; p.invincible = 2;
       });
+      this.spawnItemsForVersus();
     }
+    if (this.mode === 'endless') this.level = Math.max(1, this.level);
     this.showMsg('场地已随窗口调整！');
   },
 
@@ -394,12 +435,14 @@ const Game = {
     if (k === 'v' || k === 'V') toggleFullscreen();
     if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
     if (this.state === 'menu') {
-      const n = 2;
+      const n = 4;
       if (k === 'ArrowUp' || k === 'w' || k === 'W') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); }
       else if (k === 'ArrowDown' || k === 's' || k === 'S') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); }
       else if (k === 'Enter' || k === ' ') this.confirmMenu();
       else if (k === '1') { this.menuIndex = 0; this.confirmMenu(); }
       else if (k === '2') { this.menuIndex = 1; this.confirmMenu(); }
+      else if (k === '3') { this.menuIndex = 2; this.confirmMenu(); }
+      else if (k === '4') { this.menuIndex = 3; this.confirmMenu(); }
       return;
     }
     if (this.state === 'play' || this.state === 'pause') {
@@ -416,6 +459,7 @@ const Game = {
     if (this.state === 'win') {
       if (k !== 'Enter' && k !== ' ') return;
       if (this.mode === 'single') this.nextLevel();
+      else if (this.mode === 'endless') { this.state = 'play'; this.showMsg(`第 ${this.level} 波 · 准备！`); }
       else { this.hidden = []; this.state = 'menu'; }
       return;
     }
@@ -424,13 +468,19 @@ const Game = {
 
   confirmMenu() {
     Sfx.confirm();
-    this.reset(this.menuIndex === 0 ? 'single' : 'versus');
+    const modes = ['single', 'versus', 'item-challenge', 'endless'];
+    const mode = modes[this.menuIndex];
+    if (mode === 'single') this.reset('single');
+    else if (mode === 'versus') this.reset('versus');
+    else if (mode === 'item-challenge') this.reset('item-challenge');
+    else if (mode === 'endless') this.reset('endless');
   },
 
   /* ---------- 泡泡 ---------- */
   placeBomb(p) {
     // 遥控引爆：泡泡放满了再按键 → 引爆自己最早的一颗
-    if (p.bombActive >= p.bombMax) {
+    const maxBombs = p.double ? Math.min(p.bombMax + 1, 8) : p.bombMax;
+    if (p.bombActive >= maxBombs) {
       if (p.remote) {
         const mine = this.bombs.filter(b => b.owner === p && b.timer > 0);
         if (mine.length) mine[0].timer = 0.01;
@@ -440,8 +490,34 @@ const Game = {
     const tx = p.tx, ty = p.ty;
     if (this.bombs.some(b => b.tx === tx && b.ty === ty)) return;
     p.bombActive++;
-    this.bombs.push({ tx, ty, timer: 2.4, range: p.fire, owner: p, pass: new Set([p]) });
+    const bomb = { tx, ty, timer: 2.4, range: p.fire, owner: p, pass: new Set([p]) };
+    this.bombs.push(bomb);
     Sfx.place();
+    // 拳风：放置炸弹时向前方发射冲击波
+    if (p.punch && p.punchTimer > 0) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        for (let i = 1; i <= 3; i++) {
+          const x = tx + dx * i, y = ty + dy * i;
+          if (!inMap(x, y)) break;
+          if (this.map[idx(x, y)] === STONE) break;
+          if (this.map[idx(x, y)] === SOFT) {
+            this.breakSoft(x, y);
+            break;
+          }
+          // 伤害敌人
+          for (const en of this.enemies) {
+            if (en.alive && en.tx === x && en.ty === y) {
+              en.dying = 1.5; en.alive = false;
+              p.score++;
+              this.particles.push({ x: cx(x), y: cy(x), vx: rand(-80, 80), vy: rand(-120, -30), life: 0.5, size: 5, color: '#ffd23d' });
+            }
+          }
+        }
+      }
+      p.punchTimer = 0;
+      this.shakeT = 0.15;
+      this.showMsg(p.name + ' · 拳风！');
+    }
   },
 
   // 泡泡能否滑进目标格
@@ -458,6 +534,7 @@ const Game = {
     b.owner.bombActive = Math.max(0, b.owner.bombActive - 1);
     Sfx.boom();
     this.shakeT = 0.25;
+    const pierce = b.owner.pierce && b.owner.pierce > 0;
     const cells = [[b.tx, b.ty, 'c']];
     for (const [dx, dy, d] of [[1, 0, 'h'], [-1, 0, 'h'], [0, 1, 'v'], [0, -1, 'v']]) {
       for (let i = 1; i <= b.range; i++) {
@@ -468,7 +545,8 @@ const Game = {
         cells.push([x, y, d, i]);
         if (t === SOFT) {
           this.breakSoft(x, y);
-          break;
+          if (!pierce) break;
+          // 穿透：火焰继续穿透软砖
         }
         const ob = this.bombs.find(o => o !== b && o.tx === x && o.ty === y && o.timer > 0);
         if (ob) { ob.timer = Math.min(ob.timer, 0.06); break; }
@@ -493,12 +571,14 @@ const Game = {
         vx: rand(-70, 70), vy: rand(-120, -30),
         life: rand(0.3, 0.55), size: rand(3, 6), color: '#b07b4f',
       });
-    // 隐藏道具：对战模式埋在 hidden；闯关模式概率生成
+    // 隐藏道具：对战模式埋在 hidden；闯关模式概率生成；道具挑战全图埋道具
     let type = null;
     if (this.mode === 'versus' && this.hidden && this.hidden[idx(x, y)] != null) {
       type = this.hidden[idx(x, y)]; this.hidden[idx(x, y)] = null;
+    } else if (this.mode === 'item-challenge' && this.hidden && this.hidden[idx(x, y)] != null) {
+      type = this.hidden[idx(x, y)]; this.hidden[idx(x, y)] = null;
     } else if (this.mode === 'single' && Math.random() < 0.38) {
-      type = [ITEM_BOMB, ITEM_FIRE, ITEM_FIRE, ITEM_SPEED, ITEM_SPEED, ITEM_KICK, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE][randi(0, 8)];
+      type = [ITEM_BOMB, ITEM_FIRE, ITEM_FIRE, ITEM_SPEED, ITEM_SPEED, ITEM_KICK, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM][randi(0, 14)];
     }
     if (type !== null) this.items.push({ tx: x, ty: y, type, anim: 0 });
   },
@@ -708,6 +788,10 @@ const Game = {
     for (const p of this.players) {
       if (p.invincible > 0) p.invincible -= dt;
       if (p.shield > 0) p.shield -= dt;
+      if (p.punchTimer > 0) p.punchTimer -= dt;
+      if (p.mirrorTimer > 0) p.mirrorTimer -= dt;
+      if (p.boostTimer > 0) { p.boostTimer -= dt; if (p.boostTimer <= 0) { p.boost = false; p.speed = Math.min(p.speed - 60, 280); } }
+      if (p.stormTimer > 0) p.stormTimer -= dt;
       if (!p.alive) continue;
       p.anim += dt;
       if (this.mode === 'versus' && p === this.players[1]) {
@@ -804,10 +888,51 @@ const Game = {
           if (it.type === ITEM_KICK) p.kick = true;
           if (it.type === ITEM_SHIELD) p.shield = 6;
           if (it.type === ITEM_REMOTE) p.remote = true;
+          if (it.type === ITEM_PUNCH) { p.punch = true; p.punchTimer = 5; }
+          if (it.type === ITEM_MIRROR) { p.mirror = true; p.mirrorTimer = 5; }
+          if (it.type === ITEM_BOOST) { p.boost = true; p.boostTimer = 4; p.speed = Math.min(p.speed + 60, 280); }
+          if (it.type === ITEM_DOUBLE) p.double = true;
+          if (it.type === ITEM_PIERCE) p.pierce = true;
+          if (it.type === ITEM_STORM) { p.storm = true; p.stormTimer = 3; }
           this.showMsg(p.name + [
             ' 泡泡+1!', ' 火力+1!', ' 速度+1!',
             ' 获得踢鞋！顶着泡泡把它踢飞！', ' 护盾！6 秒无敌！', ' 遥控器！泡泡满时按键引爆！',
+            ' 拳风！冲击波清敌！', ' 镜子！反弹炸弹！', ' 加速！冲刺！',
+            ' 双倍！一次两颗泡泡！', ' 穿透！火焰贯穿软砖！', ' 风暴！全屏清敌！',
           ][it.type]);
+        }
+      }
+    }
+
+    // 风暴·周期性清敌
+    for (const p of this.players) {
+      if (p.storm && p.stormTimer > 0 && !p.alive) continue;
+      if (p.storm && p.stormTimer > 0 && this.time % 1.5 < dt) {
+        for (const en of this.enemies) {
+          if (en.alive && Math.abs(en.tx - p.tx) <= 3 && Math.abs(en.ty - p.ty) <= 3) {
+            en.dying = 1.5; en.alive = false;
+            p.score++;
+          }
+        }
+        for (const pf of this.particles) { /* 风暴视觉粒子 */ }
+        this.shakeT = 0.2;
+        for (let j = 0; j < 20; j++)
+          this.particles.push({
+            x: cx(p.tx) + rand(-60, 60), y: cy(p.ty) + rand(-60, 60),
+            vx: rand(-100, 100), vy: rand(-100, 100),
+            life: 0.6, size: rand(3, 8), color: ['#4dd0e1', '#fff', '#a0f0d0'][randi(0, 2)],
+          });
+      }
+    }
+
+    // 镜子：炸弹爆炸时若在范围内，可能反弹
+    // (简单实现：镜子的玩家在爆炸相邻格获得无敌帧)
+    for (const p of this.players) {
+      if (p.mirror && p.mirrorTimer > 0) {
+        for (const f of this.flames) {
+          if (Math.abs(f.tx - p.tx) <= 1 && Math.abs(f.ty - p.ty) <= 1) {
+            p.invincible = Math.max(p.invincible, 0.5);
+          }
         }
       }
     }
@@ -817,12 +942,13 @@ const Game = {
       if (p.dying > 0 && !p.alive) {
         p.dying -= dt;
         if (p.dying <= 0) {
-          if (this.mode === 'single') {
+          if (this.mode === 'single' || this.mode === 'endless') {
             p.lives--;
             if (p.lives > 0) {
               p.alive = true; p.dead = false;
               p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
               p.invincible = 2.5;
+              if (this.mode === 'endless') this.spawnEnemies();
             } else {
               p.dead = true;
               this.state = 'over';
@@ -846,6 +972,14 @@ const Game = {
       if (this.players[0].alive) {
         this.state = 'win';
         Sfx.win();
+      }
+    }
+    // 无尽模式：敌人清空 → 下一波
+    if (this.mode === 'endless' && this.enemies.every(e => !e.alive && e.dying <= 0) && this.state === 'play') {
+      if (this.players[0].alive) {
+        this.level++;
+        this.spawnEnemies();
+        this.showMsg(`第 ${this.level} 波 · 准备！`);
       }
     }
   },
@@ -952,13 +1086,16 @@ const Game = {
         const loser = this.players.find(p => p.dead);
         this.drawOverlay(`${winner.name} 得分！`, `比分 ${this.players[0].score} : ${this.players[1].score}\n按 Enter 进入下一回合`);
       } else {
-        this.drawOverlay('游戏结束', `消灭敌人 ${this.players[0].score} 个 · 按 Enter 返回菜单`);
+        const modeName = this.mode === 'endless' ? '无尽模式' : this.mode === 'item-challenge' ? '道具挑战' : '游戏';
+        this.drawOverlay(`${modeName}结束`, `消灭敌人 ${this.players[0].score} 个 · 按 Enter 返回菜单`);
       }
     }
     if (this.state === 'win') {
       if (this.mode === 'versus') {
         const w = this.players[0].score >= 3 ? this.players[0] : this.players[1];
         this.drawOverlay(`${w.name} 获得胜利！🎉`, `比分 ${this.players[0].score} : ${this.players[1].score} · 按 Enter 返回菜单`);
+      } else if (this.mode === 'endless') {
+        this.drawOverlay(`第 ${this.level} 波 通过！`, '按 Enter 进入下一波 · 越来越难！');
       } else {
         this.drawOverlay(`第 ${this.level} 关 通过！`, '按 Enter 进入下一关');
       }
@@ -1101,13 +1238,15 @@ const Game = {
     const itemNames = {
       [ITEM_BOMB]: 'items/bomb', [ITEM_FIRE]: 'items/fire', [ITEM_SPEED]: 'items/speed',
       [ITEM_KICK]: 'items/kick', [ITEM_SHIELD]: 'items/shield', [ITEM_REMOTE]: 'items/remote',
+      [ITEM_PUNCH]: 'items/punch', [ITEM_MIRROR]: 'items/mirror', [ITEM_BOOST]: 'items/boost',
+      [ITEM_DOUBLE]: 'items/double', [ITEM_PIERCE]: 'items/pierce', [ITEM_STORM]: 'items/storm',
     };
     const img = Assets.get(itemNames[it.type]);
     if (img) {
       ctx.drawImage(img, px - 14, py - 14, 28, 28);
     } else {
     /* === Canvas 降级 === */
-    const colors = { [ITEM_BOMB]: '#3d4a66', [ITEM_FIRE]: '#ff7043', [ITEM_SPEED]: '#42c6ff', [ITEM_KICK]: '#b8863b', [ITEM_SHIELD]: '#8a5cc9', [ITEM_REMOTE]: '#3fa65b' };
+    const colors = { [ITEM_BOMB]: '#3d4a66', [ITEM_FIRE]: '#ff7043', [ITEM_SPEED]: '#42c6ff', [ITEM_KICK]: '#b8863b', [ITEM_SHIELD]: '#8a5cc9', [ITEM_REMOTE]: '#3fa65b', [ITEM_PUNCH]: '#ff6b9d', [ITEM_MIRROR]: '#00e676', [ITEM_BOOST]: '#ff9800', [ITEM_DOUBLE]: '#e05b5b', [ITEM_PIERCE]: '#7c4dff', [ITEM_STORM]: '#4dd0e1' };
     ctx.fillStyle = colors[it.type];
     this.roundRect(px - 14, py - 14, 28, 28, 8); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.28)';
@@ -1285,7 +1424,7 @@ const Game = {
       const perks = `💣 ${p.bombMax}  🔥 ${p.fire}  👟 ${Math.round((p.speed - 150) / 22)}`
         + (p.kick ? '  🥾' : '') + (p.remote ? '  ⏱' : '') + (p.shield > 0 ? `  🛡${Math.ceil(p.shield)}` : '');
       this.drawOutlinedText(perks, W - 16, y, 20, '#fff', 'right');
-    } else {
+    } else if (this.mode === 'versus') {
       const [a, b] = this.players;
       this.drawOutlinedText(`P1  ${a.score}`, W * 0.38, HUD_H / 2, 30, '#4f8fdc');
       this.drawOutlinedText(`第 ${this.round} 回合`, W / 2, HUD_H / 2, 18, '#ffe066');
@@ -1294,6 +1433,23 @@ const Game = {
       const perkB = `💣${b.bombMax} 🔥${b.fire}` + (b.kick ? ' 🥾' : '') + (b.remote ? ' ⏱' : '') + (b.shield > 0 ? ` 🛡${Math.ceil(b.shield)}` : '');
       this.drawOutlinedText(perkA, 16, HUD_H / 2, 18, '#9fc3ff', 'left');
       this.drawOutlinedText(perkB, W - 16, HUD_H / 2, 18, '#ffb0a8', 'right');
+    } else {
+      // 道具挑战 / 无尽模式
+      const p = this.players[0];
+      const y = HUD_H / 2;
+      const modeLabel = this.mode === 'item-challenge' ? '道具挑战' : '无尽模式';
+      this.drawOutlinedText(`${modeLabel}`, 16, y, 22, '#ffd23d', 'left');
+      this.drawOutlinedText(`❤ ${p.lives}`, 16, y + 20, 18, '#ff6b7d', 'left');
+      this.drawOutlinedText(`消灭 ${p.score}`, W * 0.25, y, 22, '#b5e8a0', 'left');
+      const perks = `💣 ${p.bombMax}  🔥 ${p.fire}  👟 ${Math.round((p.speed - 150) / 22)}`
+        + (p.kick ? '  🥾' : '') + (p.remote ? '  ⏱' : '') + (p.shield > 0 ? `  🛡${Math.ceil(p.shield)}` : '')
+        + (p.punch && p.punchTimer > 0 ? `  💥${Math.ceil(p.punchTimer)}` : '')
+        + (p.mirror && p.mirrorTimer > 0 ? `  🪞${Math.ceil(p.mirrorTimer)}` : '')
+        + (p.boost && p.boostTimer > 0 ? `  ⚡${Math.ceil(p.boostTimer)}` : '')
+        + (p.double ? '  💣💣' : '')
+        + (p.pierce ? '  🔮' : '')
+        + (p.storm && p.stormTimer > 0 ? `  🌪${Math.ceil(p.stormTimer)}` : '');
+      this.drawOutlinedText(perks, W - 16, y, 20, '#fff', 'right');
     }
   },
 
@@ -1419,138 +1575,317 @@ const Game = {
 
   drawMenu() {
     const t = this.time;
-    /* ---- 全屏深色渐变 ---- */
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const gb = ctx.createLinearGradient(0, 0, 0, cvs.height);
-    gb.addColorStop(0, '#131a32'); gb.addColorStop(0.55, '#1a2342'); gb.addColorStop(1, '#0d1124');
-    ctx.fillStyle = gb;
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
-    ctx.restore();
+    const CW = cvs.width, CH = cvs.height;
 
-    /* ---- 舞台光束 ---- */
-    ctx.save();
-    ctx.translate(W * 0.30, -H * 0.25);
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.rotate(Math.sin(t * 0.15 + i * 1.7) * 0.22 + (i - 1.5) * 0.45);
-      const bw = W * 0.085;
-      const g2 = ctx.createLinearGradient(0, 0, 0, H * 1.5);
-      g2.addColorStop(0, 'rgba(130,165,255,0.09)');
-      g2.addColorStop(1, 'rgba(130,165,255,0)');
-      ctx.fillStyle = g2;
-      ctx.beginPath();
-      ctx.moveTo(-bw * 0.22, 0); ctx.lineTo(bw * 0.22, 0);
-      ctx.lineTo(bw, H * 1.5); ctx.lineTo(-bw, H * 1.5);
-      ctx.closePath(); ctx.fill();
-      ctx.restore();
+    /* ===== 背景 ===== */
+    const bg = ctx.createLinearGradient(0, 0, CW, CH);
+    bg.addColorStop(0, '#0c1028'); bg.addColorStop(0.35, '#101838');
+    bg.addColorStop(0.65, '#0e1430'); bg.addColorStop(1, '#0a0e1e');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
+
+    /* 顶部两束聚光灯 */
+    [0.2, 0.8].forEach(function(fx, i) {
+      var lx = CW * fx;
+      var sl = ctx.createRadialGradient(lx, 0, 10, lx, CH * 0.5, CH * 0.7);
+      sl.addColorStop(0, i === 0 ? 'rgba(255,120,160,0.1)' : 'rgba(100,160,255,0.1)');
+      sl.addColorStop(0.5, 'rgba(100,100,200,0.03)');
+      sl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sl; ctx.fillRect(0, 0, CW, CH);
+    });
+
+    /* 漂浮光球 */
+    var orbs = [
+      'rgba(79,143,220,0.08)','rgba(224,91,91,0.07)','rgba(255,224,102,0.06)',
+      'rgba(63,166,91,0.05)','rgba(200,63,122,0.05)','rgba(100,200,255,0.07)',
+      'rgba(255,160,80,0.05)','rgba(180,100,255,0.05)'
+    ];
+    for (var i = 0; i < 8; i++) {
+      var sp = 0.12 + i * 0.05;
+      var ox = (0.08 + i * 0.12) * CW, oy = (0.1 + i * 0.1) * CH;
+      var px = ox + Math.sin(t * sp + i * 2.1) * 35;
+      var py = oy + Math.cos(t * sp * 0.7 + i * 1.7) * 28;
+      var r = Math.max(1, 35 + i * 14 + Math.sin(t * 0.4 + i) * 12);
+      var g = ctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, orbs[i]); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(px - r, py - r, r * 2, r * 2);
     }
-    ctx.restore();
 
-    /* ---- 上升的柔光泡泡 ---- */
-    for (let i = 0; i < 16; i++) {
-      const tt = t * 0.22 + i * 2.3;
-      const bx = (i * 131.7) % W;
-      const by = H - ((tt * 34 + i * 173) % (H + 120));
-      const r = 10 + (i % 5) * 9;
-      ctx.globalAlpha = 0.05 + (i % 3) * 0.03;
-      const rg = ctx.createRadialGradient(bx, by, 1, bx, by, r);
-      rg.addColorStop(0, 'rgba(175,205,255,0.95)');
-      rg.addColorStop(1, 'rgba(175,205,255,0)');
-      ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
+    /* 彩色纸屑 */
+    var cc = ['#ff6b8a','#3dc8ff','#ffb830','#3fa65b','#c850ff','#ff6b3d','#4f8fdc','#ff50a0'];
+    for (var j = 0; j < 30; j++) {
+      var sd = j * 97.3;
+      var spd2 = 0.05 + (j % 5) * 0.02;
+      var cx2 = ((t * spd2 + sd * 3) % (CW + 60)) - 30;
+      var cy2 = ((t * spd2 * 0.45 + sd * 2.1) % (CH + 60)) - 30;
+      var w2 = 5 + (j % 3) * 3, h2 = 2 + (j % 2) * 2;
+      ctx.save(); ctx.globalAlpha = 0.28 + Math.sin(t * 1.1 + j) * 0.12;
+      ctx.translate(cx2, cy2); ctx.rotate(t * (0.35 + j * 0.07) + sd);
+      ctx.fillStyle = cc[j % cc.length];
+      ctx.fillRect(-w2 / 2, -h2 / 2, w2, h2); ctx.restore();
     }
     ctx.globalAlpha = 1;
 
-    /* ---- 右侧海报主视觉 ---- */
-    if (W >= 980) this.drawPoster(t);
+    /* ===== 右侧角色主视觉 ===== */
+    if (CW >= 500) {
+      var heroImg = Assets.get('bg/menuHero');
+      if (heroImg) {
+        var hcX = CW * 0.70, hcY = CH * 0.50;
+        var hSize = Math.min(CW * 0.55, CH * 0.92);
 
-    /* ---- 左侧 LOGO ---- */
-    const mx = Math.max(48, W * 0.07);
-    const ly = H * 0.19;
-    ctx.save();
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.font = `bold ${Math.round(H * 0.024 + 8)}px "Microsoft YaHei", sans-serif`;
-    ctx.fillStyle = 'rgba(255,214,90,0.8)';
-    ctx.fillText('BUBBLE BLAST', mx, ly - H * 0.088);
-    ctx.shadowColor = 'rgba(255,215,80,0.5)';
-    ctx.shadowBlur = 36;
-    const lg = ctx.createLinearGradient(0, ly - H * 0.07, 0, ly + H * 0.07);
-    lg.addColorStop(0, '#fff8d8'); lg.addColorStop(0.45, '#ffdf6b'); lg.addColorStop(1, '#eda43c');
-    ctx.fillStyle = lg;
-    ctx.font = `bold ${Math.round(H * 0.115)}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText('泡泡堂', mx, ly + Math.sin(t * 1.6) * 4);
-    ctx.shadowBlur = 0;
-    ctx.restore();
-    ctx.fillStyle = '#ffd23d';
-    ctx.fillRect(mx + 4, ly + H * 0.072, 52, 4);
+        /* 背后光晕 */
+        var haloR = hSize * 0.6;
+        var halo = ctx.createRadialGradient(hcX, hcY, 10, hcX, hcY, haloR);
+        halo.addColorStop(0, 'rgba(255,140,200,0.1)');
+        halo.addColorStop(0.4, 'rgba(100,150,255,0.05)');
+        halo.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(hcX, hcY, haloR, 0, Math.PI * 2); ctx.fill();
 
-    /* ---- 左侧竖排菜单选择器 ---- */
-    const items = [
-      { title: '单人闯关', desc: '挑战 AI 敌人 · 关卡无限', color: '#4f8fdc' },
-      { title: '双人对战', desc: '同屏 1v1 · 先胜三回合', color: '#e05b5b' },
-    ];
-    const rowW = Math.min(W * 0.30, 320);
-    const rowH = Math.min(H * 0.115, 78);
-    const listY = H * 0.40;
-    this.menuRects = [];
-    items.forEach((it, i) => {
-      const selected = this.menuIndex === i || this.hoverIndex === i;
-      const y = listY + i * rowH;
-      this.menuRects.push({ x: mx - 18, y, w: rowW + 36, h: rowH - 12 });
-      if (selected) {
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        this.roundRect(mx - 18, y, rowW + 36, rowH - 12, 12); ctx.fill();
-        ctx.fillStyle = it.color;
-        ctx.shadowColor = it.color; ctx.shadowBlur = 14;
-        this.roundRect(mx - 18, y + 8, 5, rowH - 28, 2.5); ctx.fill();
-        ctx.shadowBlur = 0;
-        const ax = mx - 40 + Math.sin(t * 6) * 3;
-        ctx.fillStyle = it.color;
-        ctx.beginPath();
-        ctx.moveTo(ax, y + (rowH - 12) / 2 - 8); ctx.lineTo(ax + 12, y + (rowH - 12) / 2); ctx.lineTo(ax, y + (rowH - 12) / 2 + 8);
-        ctx.closePath(); ctx.fill();
+        /* 直接画（PNG 已做成圆形透明边缘） + 边缘渐变遮罩 */
+        ctx.save();
+        ctx.translate(hcX, hcY);
+        ctx.rotate(Math.sin(t * 0.15) * 0.005);
+        ctx.drawImage(heroImg, -hSize / 2, -hSize / 2, hSize, hSize);
+        ctx.restore();
+
+        /* 边缘羽化：径向渐变从透明到背景色 */
+        var fadeR = hSize * 0.85;
+        var fade = ctx.createRadialGradient(hcX, hcY, fadeR * 0.08, hcX, hcY, fadeR);
+        fade.addColorStop(0, 'rgba(10,14,30,0)');
+        fade.addColorStop(0.12, 'rgba(10,14,30,0)');
+        fade.addColorStop(0.25, 'rgba(10,14,30,0.001)');
+        fade.addColorStop(0.35, 'rgba(10,14,30,0.003)');
+        fade.addColorStop(0.42, 'rgba(10,14,30,0.01)');
+        fade.addColorStop(0.46, 'rgba(10,14,30,0.03)');
+        fade.addColorStop(0.49, 'rgba(10,14,30,0.06)');
+        fade.addColorStop(0.52, 'rgba(10,14,30,0.12)');
+        fade.addColorStop(0.54, 'rgba(10,14,30,0.2)');
+        fade.addColorStop(0.57, 'rgba(10,14,30,0.3)');
+        fade.addColorStop(0.6, 'rgba(10,14,30,0.4)');
+        fade.addColorStop(0.64, 'rgba(10,14,30,0.52)');
+        fade.addColorStop(0.68, 'rgba(10,14,30,0.62)');
+        fade.addColorStop(0.72, 'rgba(10,14,30,0.72)');
+        fade.addColorStop(0.78, 'rgba(10,14,30,0.82)');
+        fade.addColorStop(0.84, 'rgba(10,14,30,0.9)');
+        fade.addColorStop(0.9, 'rgba(10,14,30,0.95)');
+        fade.addColorStop(0.96, 'rgba(10,14,30,0.99)');
+        fade.addColorStop(1, 'rgba(10,14,30,1)');
+        ctx.fillStyle = fade;
+        ctx.beginPath(); ctx.arc(hcX, hcY, fadeR, 0, Math.PI * 2); ctx.fill();
+
+        /* 四角补渐变 */
+        var cornerR = hSize * 0.16;
+        [[-0.20, -0.20], [0.20, -0.20], [-0.20, 0.20], [0.20, 0.20]].forEach(function(c) {
+          var cx2 = hcX + c[0] * hSize;
+          var cy2 = hcY + c[1] * hSize;
+          var cg = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, cornerR);
+          cg.addColorStop(0, 'rgba(10,14,30,1)');
+          cg.addColorStop(0.06, 'rgba(10,14,30,0.99)');
+          cg.addColorStop(0.14, 'rgba(10,14,30,0.9)');
+          cg.addColorStop(0.22, 'rgba(10,14,30,0.75)');
+          cg.addColorStop(0.3, 'rgba(10,14,30,0.55)');
+          cg.addColorStop(0.38, 'rgba(10,14,30,0.38)');
+          cg.addColorStop(0.46, 'rgba(10,14,30,0.22)');
+          cg.addColorStop(0.55, 'rgba(10,14,30,0.1)');
+          cg.addColorStop(0.65, 'rgba(10,14,30,0.04)');
+          cg.addColorStop(0.8, 'rgba(10,14,30,0.008)');
+          cg.addColorStop(1, 'rgba(10,14,30,0)');
+          ctx.fillStyle = cg;
+          ctx.fillRect(cx2 - cornerR, cy2 - cornerR, cornerR * 2, cornerR * 2);
+        });
+      } else {
+        /* 降级：手绘角色 */
+        var charX = CW * 0.72, charY = CH * 0.46;
+        var charR = Math.min(CW, CH) * 0.22;
+        var hR = charR * 2.2 + Math.sin(t * 0.3) * 20;
+        var hl = ctx.createRadialGradient(charX, charY, 10, charX, charY, hR);
+        hl.addColorStop(0, 'rgba(255,140,200,0.14)');
+        hl.addColorStop(0.35, 'rgba(120,160,255,0.08)');
+        hl.addColorStop(0.6, 'rgba(255,180,60,0.04)');
+        hl.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(charX, charY, hR, 0, Math.PI * 2); ctx.fill();
+        this.drawChar({
+          x: charX, y: charY, alive: true, dying: 0,
+          color: '#ff6bb5', face: { x: 0, y: 0 },
+          anim: t, moving: false, isAI: false
+        });
       }
-      this.drawOutlinedText(it.title, mx, y + (rowH - 12) * 0.30, 26, selected ? '#ffe066' : '#c9d2f2', 'left');
-      this.drawOutlinedText(it.desc, mx, y + (rowH - 12) * 0.72, 14, selected ? '#9aa8d8' : '#667199', 'left');
+    }
+
+    /* ===== 左侧标题 + 菜单 ===== */
+    var mx = Math.max(32, CW * 0.05);
+    var titleY = CH * 0.05;
+
+    /* --- 泡泡爆破 大标题 --- */
+    ctx.save();
+    var tSz = Math.round(Math.min(CW * 0.058, CH * 0.105));
+    /* 标题底光 */
+    var tgl = ctx.createRadialGradient(mx + tSz * 1.8, titleY + tSz * 0.4, 5, mx + tSz * 1.8, titleY + tSz * 0.4, tSz * 3);
+    tgl.addColorStop(0, 'rgba(80,140,255,0.16)'); tgl.addColorStop(0.4, 'rgba(255,100,180,0.08)'); tgl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tgl; ctx.fillRect(mx - 50, titleY - 40, tSz * 5, tSz * 2.5);
+
+    /* "泡泡" 蓝色渐变感 */
+    ctx.font = '900 ' + tSz + 'px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    /* 外发光 */
+    ctx.shadowColor = 'rgba(60,140,255,1)'; ctx.shadowBlur = 35;
+    ctx.fillStyle = '#4a9fff'; ctx.fillText('泡泡', mx, titleY);
+    /* 内亮层 */
+    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(160,220,255,0.8)';
+    ctx.fillStyle = '#90d0ff'; ctx.fillText('泡泡', mx, titleY);
+
+    /* "爆破" 粉色渐变感 */
+    var pw = ctx.measureText('泡泡').width;
+    ctx.shadowColor = 'rgba(255,70,160,1)'; ctx.shadowBlur = 35;
+    ctx.fillStyle = '#ff50a0'; ctx.fillText('爆破', mx + pw, titleY);
+    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(255,160,200,0.8)';
+    ctx.fillStyle = '#ff90c8'; ctx.fillText('爆破', mx + pw, titleY);
+    ctx.shadowBlur = 0;
+
+    /* 标题两侧星形装饰 */
+    var starSz = tSz * 0.18;
+    [[mx - starSz * 1.5, titleY + tSz * 0.3, '#5aadff'], [mx + pw + tSz * 2.3, titleY + tSz * 0.5, '#ff6bb5']].forEach(function(s, si) {
+      ctx.fillStyle = s[2]; ctx.globalAlpha = 0.7 + Math.sin(t * 2.5 + si * 1.5) * 0.25;
+      ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(t * 0.5 + si);
+      ctx.beginPath();
+      for (var k = 0; k < 4; k++) {
+        var a2 = k * Math.PI / 2;
+        ctx.lineTo(Math.cos(a2) * starSz, Math.sin(a2) * starSz);
+        ctx.lineTo(Math.cos(a2 + Math.PI / 4) * starSz * 0.4, Math.sin(a2 + Math.PI / 4) * starSz * 0.4);
+      }
+      ctx.closePath(); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
+    });
+    ctx.restore();
+
+    /* 标题下装饰线 + 菱形 */
+    var lineY = titleY + tSz + 14;
+    var lg = ctx.createLinearGradient(mx, 0, mx + 280, 0);
+    lg.addColorStop(0, 'rgba(80,160,255,0.6)'); lg.addColorStop(0.45, 'rgba(255,100,180,0.5)'); lg.addColorStop(1, 'rgba(255,100,180,0)');
+    ctx.strokeStyle = lg; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(mx, lineY); ctx.lineTo(mx + 280, lineY); ctx.stroke();
+    [[mx + 90, '#5aadff'], [mx + 170, '#ff6bb5']].forEach(function(d, di) {
+      ctx.fillStyle = d[1]; ctx.globalAlpha = 0.7 + Math.sin(t * 2.2 + di) * 0.2;
+      ctx.beginPath(); ctx.moveTo(d[0], lineY - 5); ctx.lineTo(d[0] + 5, lineY);
+      ctx.lineTo(d[0], lineY + 5); ctx.lineTo(d[0] - 5, lineY); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
     });
 
-    /* ---- 键帽按键提示（左对齐） ---- */
-    const ky = listY + rowH * 2 + H * 0.025;
-    const segs = [
+    /* ===== 菜单卡片 ===== */
+    var items = [
+      { title: '单人闯关', desc: '挑战 AI 敌人 · 关卡无限', color: '#4f8fdc', icon: 'items/bomb' },
+      { title: '双人对战', desc: '同屏 1v1 · 先胜三回合', color: '#e05b5b', icon: 'items/fire' },
+      { title: '道具挑战', desc: '限定道具 · 极致操作', color: '#ffd23d', icon: 'items/shield' },
+      { title: '无尽模式', desc: '越战越勇 · 冲击极限', color: '#3fa65b', icon: 'ui/star-badge' },
+    ];
+    var listY = lineY + CH * 0.055;
+    var rowH = Math.min(CH * 0.14, 95);
+    var cardW = Math.min(CW * 0.34, 380);
+    var cardH = rowH - 12;
+    this.menuRects = [];
+
+    items.forEach(function(it, i) {
+      var y = listY + i * rowH;
+      var btnX = mx - 4, btnW = cardW, btnH = cardH;
+      this.menuRects.push({ x: btnX, y: y, w: btnW, h: btnH });
+
+      var isHover = this.hoverIndex === i;
+      var isSelected = this.menuIndex === i;
+
+      /* 卡片底 */
+      ctx.fillStyle = isSelected ? 'rgba(18,28,58,0.9)' : isHover ? 'rgba(16,24,50,0.8)' : 'rgba(12,18,40,0.7)';
+      this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
+
+      /* 边框 */
+      if (isSelected) {
+        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 26;
+        ctx.strokeStyle = it.color; ctx.lineWidth = 2.5;
+        ctx.globalAlpha = 0.85 + Math.sin(t * 3.5) * 0.12;
+        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
+        var bgG = ctx.createLinearGradient(btnX, y, btnX + btnW, y);
+        bgG.addColorStop(0, it.color + '18'); bgG.addColorStop(0.5, 'transparent');
+        ctx.fillStyle = bgG; this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
+      } else if (isHover) {
+        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 12;
+        ctx.strokeStyle = it.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
+      } else {
+        ctx.strokeStyle = 'rgba(130,170,255,0.1)'; ctx.lineWidth = 1;
+        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
+      }
+
+      /* 左色条 */
+      var barW = isSelected ? 6 : 4;
+      ctx.save();
+      if (isSelected || isHover) { ctx.shadowColor = it.color; ctx.shadowBlur = isSelected ? 14 : 6; }
+      ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : isHover ? 0.85 : 0.6;
+      this.roundRect(btnX + 1, y + 8, barW, btnH - 16, barW / 2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
+
+      /* 图标圆底 */
+      var iconR = 17, iconCx = btnX + 36, iconCy = y + btnH / 2;
+      var ig = ctx.createRadialGradient(iconCx - 4, iconCy - 4, 2, iconCx, iconCy, iconR);
+      ig.addColorStop(0, it.color + '40'); ig.addColorStop(1, it.color + '12');
+      ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.strokeStyle = it.color; ctx.globalAlpha = isSelected ? 0.8 : 0.4;
+      ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.restore();
+
+      var iconImg = Assets.get(it.icon);
+      if (iconImg) {
+        ctx.save(); ctx.globalAlpha = isSelected ? 1 : 0.7;
+        ctx.drawImage(iconImg, iconCx - 13, iconCy - 13, 26, 26);
+        ctx.globalAlpha = 1; ctx.restore();
+      } else {
+        ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : 0.7;
+        ctx.beginPath(); ctx.arc(iconCx, iconCy, 10, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      }
+
+      /* 文字 */
+      var tCol = isSelected ? '#ffe066' : isHover ? '#e8eeff' : '#b0bcda';
+      var dCol = isSelected ? 'rgba(255,248,208,0.85)' : 'rgba(130,145,190,0.8)';
+      this.drawOutlinedText(it.title, btnX + 64, iconCy - 8, Math.round(Math.min(CW * 0.018, 24)), tCol, 'left');
+      this.drawOutlinedText(it.desc, btnX + 64, iconCy + 11, Math.round(Math.min(CW * 0.010, 13)), dCol, 'left');
+    }.bind(this));
+
+    /* ===== 底部按键提示 ===== */
+    var keycapImg = Assets.get('ui/keycap');
+    var segs = [
       { caps: ['↑', '↓'], label: '选择' },
       { caps: ['Enter'], label: '确认' },
       { caps: ['V'], label: '全屏' },
       { caps: ['M'], label: '音效' },
     ];
+    var fx = mx, ky = CH - 30;
     ctx.font = '12px "Microsoft YaHei", sans-serif';
-    let fx = mx;
-    segs.forEach(s => {
-      let x = fx;
-      for (const c of s.caps) { this.drawKeycap(x + 13, ky, c); x += 30; }
-      ctx.fillStyle = 'rgba(200,208,236,0.6)';
-      ctx.font = '12px "Microsoft YaHei", sans-serif';
-      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(s.label, x + 8, ky + 1);
-      fx = x + 8 + ctx.measureText(s.label).width + 30;
-    });
-
-    /* ---- 页脚 ---- */
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.font = '11px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('v1.0.0', 14, H - 14);
+    segs.forEach(function(s) {
+      var x = fx;
+      s.caps.forEach(function(c) {
+        if (keycapImg) { ctx.drawImage(keycapImg, x + 4, ky - 10, 22, 22); }
+        else { this.drawKeycap(x + 13, ky, c); }
+        x += 28;
+      }.bind(this));
+      ctx.fillStyle = 'rgba(150,165,200,0.5)';
+      ctx.fillText(s.label, x + 5, ky + 1);
+      fx = x + 5 + ctx.measureText(s.label).width + 20;
+    }.bind(this));
 
-    /* ---- 电影感暗角 ---- */
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const vg = ctx.createRadialGradient(cvs.width / 2, cvs.height / 2, Math.min(cvs.width, cvs.height) * 0.38, cvs.width / 2, cvs.height / 2, Math.max(cvs.width, cvs.height) * 0.75);
-    vg.addColorStop(0, 'rgba(5,8,20,0)');
-    vg.addColorStop(1, 'rgba(5,8,20,0.5)');
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.font = '11px monospace';
+    ctx.fillText('Version 1.0.0', 10, CH - 10);
+
+    /* ===== 暗角 ===== */
+    var vg = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.35, CW / 2, CH / 2, Math.max(CW, CH) * 0.75);
+    vg.addColorStop(0, 'rgba(5,8,20,0)'); vg.addColorStop(0.6, 'rgba(5,8,20,0.15)'); vg.addColorStop(1, 'rgba(5,8,20,0.45)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, CW, CH);
+
     ctx.restore();
   },
+
+
 };
 
 /* ---------- 主循环 ---------- */
@@ -1559,7 +1894,6 @@ let lastWinW = innerWidth, lastWinH = innerHeight;
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  // 兜底：某些环境（内嵌视口模拟）不派发 resize 事件，手动检测窗口尺寸变化
   if (innerWidth !== lastWinW || innerHeight !== lastWinH) {
     lastWinW = innerWidth; lastWinH = innerHeight;
     fitCanvas();

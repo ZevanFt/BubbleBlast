@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24" width="120" height="24">
+  <defs>
+    <linearGradient id="progressBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+    </linearGradient>
+    <linearGradient id="progressFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4f8fdc"/>
+      <stop offset="100%" stop-color="#e05b5b"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <rect x="0" y="2" width="120" height="20" rx="10" fill="url(#progressBg)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+  <!-- 进度条 -->
+  <rect x="2" y="4" width="84" height="16" rx="8" fill="url(#progressFill)"/>
+  <!-- 高光 -->
+  <rect x="4" y="4" width="40" height="5" rx="3" fill="rgba(255,255,255,0.2)"/>
+  <!-- 关卡图标 -->
+  <text x="16" y="16" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="10" font-weight="bold" fill="#fff">L1</text>
+  <!-- 文本 -->
+  <text x="60" y="16" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="9" fill="#ffe066">关卡 1</text>
+  <!-- 箭头 -->
+  <polygon points="110,8 116,12 110,16" fill="rgba(255,255,255,0.5)"/>
+</svg>

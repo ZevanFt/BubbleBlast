@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <radialGradient id="shieldGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffe066" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#ffe066" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shieldBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a050"/>
+      <stop offset="50%" stop-color="#8a5cc9"/>
+      <stop offset="100%" stop-color="#6a3ca0"/>
+    </linearGradient>
+    <filter id="shieldShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- 光晕 -->
+  <circle cx="24" cy="24" r="22" fill="url(#shieldGlow)">
+    <animate attributeName="r" values="20;24;20" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <!-- 盾牌主体 -->
+  <path d="M24,5 L38,12 Q41,14 41,18 L41,30 Q36,40 24,42 Q12,40 7,30 L7,18 Q7,14 10,12 Z" fill="url(#shieldBody)" filter="url(#shieldShadow)"/>
+  <!-- 盾牌高光 -->
+  <path d="M24,6 L32,11 L32,20 Q28,30 24,32 Q20,30 16,20 L16,11 Z" fill="rgba(255,255,255,0.3)" opacity="0.6"/>
+  <!-- 护盾边框 -->
+  <path d="M24,5 L38,12 Q41,14 41,18 L41,30 Q36,40 24,42 Q12,40 7,30 L7,18 Q7,14 10,12 Z" fill="none" stroke="#ffe066" stroke-width="1.5" opacity="0.7"/>
+  <!-- 中心宝石 -->
+  <circle cx="24" cy="24" r="5" fill="#ffe066" opacity="0.9">
+    <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="24" cy="24" r="3" fill="#fff" opacity="0.8"/>
+  <!-- 护盾纹理线 -->
+  <line x1="15" y1="16" x2="33" y2="16" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <line x1="15" y1="24" x2="33" y2="24" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <line x1="15" y1="32" x2="33" y2="32" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+</svg>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <radialGradient id="boostGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#00e676" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00e676" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="boostBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#69f0ae"/>
+      <stop offset="50%" stop-color="#00c853"/>
+      <stop offset="100%" stop-color="#009624"/>
+    </linearGradient>
+    <filter id="boostShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- 光晕 -->
+  <circle cx="24" cy="24" r="20" fill="url(#boostGlow)"/>
+  <!-- 火箭/冲刺主体 -->
+  <path d="M24,6 L30,20 L24,18 L18,20 Z" fill="url(#boostBody)" filter="url(#boostShadow)"/>
+  <!-- 尾焰 -->
+  <path d="M18,34 Q20,40 24,44 Q28,40 30,34" fill="none" stroke="#69f0ae" stroke-width="3" stroke-linecap="round" opacity="0.6">
+    <animate attributeName="d" values="M18,34 Q20,40 24,44 Q28,40 30,34;M18,34 Q22,42 24,46 Q26,42 30,34;M18,34 Q20,40 24,44 Q28,40 30,34" dur="0.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="0.6s" repeatCount="indefinite"/>
+  </path>
+  <path d="M20,36 Q22,42 24,46 Q26,42 28,36" fill="none" stroke="#b9f6ca" stroke-width="2" stroke-linecap="round" opacity="0.4">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="0.8s" repeatCount="indefinite"/>
+  </path>
+  <!-- 速度线 -->
+  <line x1="8" y1="18" x2="2" y2="16" stroke="#69f0ae" stroke-width="2" stroke-linecap="round" opacity="0.6">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="0.7s" repeatCount="indefinite"/>
+  </line>
+  <line x1="8" y1="24" x2="2" y2="24" stroke="#69f0ae" stroke-width="2" stroke-linecap="round" opacity="0.5">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="0.9s" repeatCount="indefinite"/>
+  </line>
+  <line x1="8" y1="30" x2="2" y2="32" stroke="#69f0ae" stroke-width="2" stroke-linecap="round" opacity="0.4">
+    <animate attributeName="opacity" values="0.3;0.6;0.3" dur="1.1s" repeatCount="indefinite"/>
+  </line>
+  <!-- 中心装饰 -->
+  <circle cx="24" cy="18" r="5" fill="#00e676" opacity="0.8"/>
+  <circle cx="24" cy="18" r="3" fill="#69f0ae"/>
+</svg>

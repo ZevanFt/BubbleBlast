@@ -16,6 +16,15 @@ const Assets = {
       fire:     'assets/items/fire.svg',
       speed:    'assets/items/speed.svg',
       heart:    'assets/items/heart.svg',
+      kick:     'assets/items/kick.svg',
+      shield:   'assets/items/shield.svg',
+      remote:   'assets/items/remote.svg',
+      punch:    'assets/items/punch.svg',
+      mirror:   'assets/items/mirror.svg',
+      boost:    'assets/items/boost.svg',
+      double:   'assets/items/double.svg',
+      pierce:   'assets/items/pierce.svg',
+      storm:    'assets/items/storm.svg',
     },
     // 效果
     effects: {
@@ -32,6 +41,8 @@ const Assets = {
       softBrick: 'assets/bg/soft-brick.svg',
       menu:      'assets/bg/bg-menu.svg',
       overlay:   'assets/bg/bg-overlay.svg',
+      titlePoster:'assets/bg/title-poster.svg',
+      menuHero:  'assets/bg/menu-hero.png',
     },
     // 角色
     chars: {
@@ -44,10 +55,24 @@ const Assets = {
     },
     // UI
     ui: {
-      life:   'assets/ui/life.svg',
-      coin:   'assets/ui/coin.svg',
-      pause:  'assets/ui/btn-pause.svg',
-      start:  'assets/ui/btn-start.svg',
+      life:      'assets/ui/life.svg',
+      coin:      'assets/ui/coin.svg',
+      pause:     'assets/ui/btn-pause.svg',
+      start:     'assets/ui/btn-start.svg',
+      resume:    'assets/ui/btn-resume.svg',
+      restart:   'assets/ui/btn-restart.svg',
+      settings:  'assets/ui/btn-settings.svg',
+      exit:      'assets/ui/btn-exit.svg',
+      pauseHover:'assets/ui/btn-pause-hover.svg',
+      scoreBadge:'assets/ui/score-badge.svg',
+      healthBar: 'assets/ui/health-bar.svg',
+      levelProgress:'assets/ui/level-progress.svg',
+      timer:     'assets/ui/timer.svg',
+      energyBar: 'assets/ui/energy-bar.svg',
+      starBadge: 'assets/ui/star-badge.svg',
+      diamondBadge:'assets/ui/diamond-badge.svg',
+      keycap:    'assets/ui/keycap.svg',
+      comboBar:  'assets/ui/combo-bar.svg',
     },
   },
 
@@ -61,18 +86,22 @@ const Assets = {
     }
     let loaded = 0;
     const total = urls.length;
+    // 加载前先通知一次
+    this._listeners.forEach(fn => fn(0, total));
     for (const { cat, name, url } of urls) {
       try {
         const img = await this._load(url);
         this._cache.set(`${cat}/${name}`, img);
         loaded++;
-        console.log(`[AssetLoader] ${loaded}/${total} loaded: ${cat}/${name}`);
+        // 每个素材加载完就更新进度
+        this._listeners.forEach(fn => fn(loaded, total));
       } catch (e) {
+        loaded++;
+        this._listeners.forEach(fn => fn(loaded, total));
         console.warn(`[AssetLoader] Failed to load: ${url}`, e);
       }
     }
     console.log(`[AssetLoader] Done. ${this._cache.size}/${total} assets ready.`);
-    this._listeners.forEach(fn => fn(this._cache.size, total));
     return this._cache.size;
   },
 
@@ -80,8 +109,9 @@ const Assets = {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+      const timer = setTimeout(() => reject(new Error('timeout: ' + url)), 3000);
+      img.onload = () => { clearTimeout(timer); resolve(img); };
+      img.onerror = (e) => { clearTimeout(timer); reject(e); };
       img.src = url;
     });
   },

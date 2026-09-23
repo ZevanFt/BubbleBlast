@@ -8,7 +8,7 @@
   html, body {
     margin: 0; padding: 0;
     width: 100%; height: 100%;
-    background: #151827;
+    background: #0a0e1a;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
@@ -24,71 +24,380 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
   }
-  canvas {
-    display: block;
-  }
-  #tip {
-    position: fixed;
-    bottom: 8px; left: 0; right: 0;
-    text-align: center;
-    color: #6b6f8a;
-    font-size: 12px;
-    letter-spacing: 1px;
-    pointer-events: none;
-    z-index: 5;
-  }
-  /* 加载界面 */
+  canvas { display: block; }
+
+  /* ========== 加载界面 ========== */
   #loader {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(26, 28, 44, 0.95);
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     z-index: 10;
-    transition: opacity 0.5s;
+    transition: opacity 0.8s ease, visibility 0.8s;
   }
-  #loader.hidden { opacity: 0; pointer-events: none; }
-  #loader .logo {
-    font-size: 36px;
+  #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  /* 深空背景 + 星云 */
+  .loader-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 40% 50% at 20% 30%, rgba(80,40,120,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 35% 45% at 80% 70%, rgba(20,60,120,0.15) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255,180,60,0.06) 0%, transparent 50%),
+      linear-gradient(180deg, #0d1128 0%, #0a0e1a 50%, #0d1128 100%);
+  }
+
+  /* 星光粒子层 */
+  .stars { position: absolute; inset: 0; pointer-events: none; }
+  .star {
+    position: absolute; border-radius: 50%;
+    animation: twinkle 2.5s ease-in-out infinite;
+  }
+  .star:nth-child(1)  { width:3px;height:3px;top:8%;left:12%;background:#ffe066;animation-delay:0s; }
+  .star:nth-child(2)  { width:2px;height:2px;top:15%;left:78%;background:#7ea8ff;animation-delay:0.5s; }
+  .star:nth-child(3)  { width:4px;height:4px;top:42%;left:5%;background:#ffe066;animation-delay:1.2s; }
+  .star:nth-child(4)  { width:2px;height:2px;top:68%;left:88%;background:#ff6b8a;animation-delay:0.3s; }
+  .star:nth-child(5)  { width:3px;height:3px;top:82%;left:25%;background:#7ea8ff;animation-delay:1.8s; }
+  .star:nth-child(6)  { width:2px;height:2px;top:30%;left:92%;background:#ffe066;animation-delay:0.8s; }
+  .star:nth-child(7)  { width:3px;height:3px;top:55%;left:45%;background:#3fa65b;animation-delay:2s; }
+  .star:nth-child(8)  { width:2px;height:2px;top:12%;left:55%;background:#ff6b8a;animation-delay:1.5s; }
+  .star:nth-child(9)  { width:4px;height:4px;top:75%;left:60%;background:#ffe066;animation-delay:0.2s; }
+  .star:nth-child(10) { width:2px;height:2px;top:88%;left:80%;background:#7ea8ff;animation-delay:1s; }
+  .star:nth-child(11) { width:3px;height:3px;top:5%;left:40%;background:#ffe066;animation-delay:2.2s; }
+  .star:nth-child(12) { width:2px;height:2px;top:50%;left:15%;background:#ff6b8a;animation-delay:0.6s; }
+  .star:nth-child(13) { width:3px;height:3px;top:35%;left:70%;background:#7ea8ff;animation-delay:1.4s; }
+  .star:nth-child(14) { width:2px;height:2px;top:92%;left:35%;background:#ffe066;animation-delay:0.9s; }
+  .star:nth-child(15) { width:4px;height:4px;top:22%;left:30%;background:#3fa65b;animation-delay:1.7s; }
+  .star:nth-child(16) { width:2px;height:2px;top:60%;left:95%;background:#ff6b8a;animation-delay:2.4s; }
+  .star:nth-child(17) { width:3px;height:3px;top:78%;left:8%;background:#ffe066;animation-delay:0.4s; }
+  .star:nth-child(18) { width:2px;height:2px;top:48%;left:50%;background:#7ea8ff;animation-delay:1.1s; }
+  .star:nth-child(19) { width:3px;height:3px;top:3%;left:65%;background:#ffe066;animation-delay:1.9s; }
+  .star:nth-child(20) { width:2px;height:2px;top:95%;left:55%;background:#ff6b8a;animation-delay:0.7s; }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.5); box-shadow: 0 0 6px 1px currentColor; }
+  }
+
+  /* 彩色泡泡 */
+  .bubble {
+    position: absolute; border-radius: 50%;
+    pointer-events: none; will-change: transform, opacity;
+  }
+  .bubble::after {
+    content: ''; position: absolute;
+    top: 18%; left: 22%; width: 28%; height: 22%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    filter: blur(1.5px);
+  }
+  .b1 { width:70px;height:70px;top:8%;left:8%;
+    background: radial-gradient(circle at 35% 35%, rgba(80,200,255,0.35), rgba(40,100,200,0.08));
+    border: 2px solid rgba(80,200,255,0.3);
+    box-shadow: 0 0 25px rgba(80,200,255,0.15);
+    animation: floatB 9s ease-in-out infinite, pulseB 3.5s ease-in-out infinite; }
+  .b2 { width:50px;height:50px;top:20%;left:82%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,100,180,0.35), rgba(200,50,120,0.08));
+    border: 2px solid rgba(255,100,180,0.3);
+    box-shadow: 0 0 20px rgba(255,100,180,0.12);
+    animation: floatB 7s ease-in-out infinite 1s, pulseB 4s ease-in-out infinite 0.5s; }
+  .b3 { width:60px;height:60px;top:65%;left:75%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,200,60,0.35), rgba(200,150,20,0.08));
+    border: 2px solid rgba(255,200,60,0.25);
+    box-shadow: 0 0 22px rgba(255,200,60,0.12);
+    animation: floatB 10s ease-in-out infinite 2s, pulseB 3.2s ease-in-out infinite 1s; }
+  .b4 { width:40px;height:40px;top:75%;left:12%;
+    background: radial-gradient(circle at 35% 35%, rgba(80,220,120,0.3), rgba(40,160,80,0.06));
+    border: 1.5px solid rgba(80,220,120,0.2);
+    box-shadow: 0 0 15px rgba(80,220,120,0.1);
+    animation: floatB 8s ease-in-out infinite 0.5s, pulseB 4.5s ease-in-out infinite 2s; }
+  .b5 { width:35px;height:35px;top:35%;left:88%;
+    background: radial-gradient(circle at 35% 35%, rgba(180,100,255,0.3), rgba(120,50,200,0.06));
+    border: 1.5px solid rgba(180,100,255,0.2);
+    box-shadow: 0 0 18px rgba(180,100,255,0.1);
+    animation: floatB 6.5s ease-in-out infinite 3s, pulseB 3s ease-in-out infinite 0.8s; }
+  .b6 { width:45px;height:45px;top:85%;left:50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,150,80,0.3), rgba(200,100,30,0.06));
+    border: 1.5px solid rgba(255,150,80,0.2);
+    box-shadow: 0 0 16px rgba(255,150,80,0.1);
+    animation: floatB 11s ease-in-out infinite 1.5s, pulseB 5s ease-in-out infinite 1.2s; }
+  .b7 { width:28px;height:28px;top:5%;left:55%;
+    background: radial-gradient(circle at 35% 35%, rgba(80,200,255,0.3), transparent);
+    border: 1px solid rgba(80,200,255,0.18);
+    animation: floatB 5.5s ease-in-out infinite 2.5s, pulseB 2.5s ease-in-out infinite 1.5s; }
+  .b8 { width:55px;height:55px;top:50%;left:3%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,100,120,0.25), rgba(200,50,60,0.06));
+    border: 1.5px solid rgba(255,100,120,0.18);
+    box-shadow: 0 0 18px rgba(255,100,120,0.1);
+    animation: floatB 9.5s ease-in-out infinite 3.5s, pulseB 4s ease-in-out infinite 0.3s; }
+
+  @keyframes floatB {
+    0% { transform: translateY(0) translateX(0); opacity: 0.6; }
+    25% { transform: translateY(-20px) translateX(12px); opacity: 0.85; }
+    50% { transform: translateY(-45px) translateX(-8px); opacity: 0.5; }
+    75% { transform: translateY(-70px) translateX(15px); opacity: 0.35; }
+    100% { transform: translateY(-100px) translateX(0); opacity: 0; }
+  }
+  @keyframes pulseB {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.06); filter: brightness(1.25); }
+  }
+
+  /* ========== Logo 区域 ========== */
+  .logo-area {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; margin-bottom: 36px;
+  }
+
+  /* 同心圆光环 portal */
+  .portal {
+    width: 120px; height: 120px;
+    position: relative; margin-bottom: 20px;
+  }
+  .portal .ring {
+    position: absolute; border-radius: 50%;
+    border: 3px solid transparent;
+    animation: portalSpin 4s linear infinite;
+  }
+  .portal .ring:nth-child(1) {
+    inset: 0;
+    border-color: rgba(80,180,255,0.5) transparent rgba(80,180,255,0.5) transparent;
+    box-shadow: 0 0 20px rgba(80,180,255,0.15);
+  }
+  .portal .ring:nth-child(2) {
+    inset: 12px;
+    border-color: transparent rgba(255,100,180,0.5) transparent rgba(255,100,180,0.5);
+    animation-direction: reverse;
+    animation-duration: 3s;
+    box-shadow: 0 0 15px rgba(255,100,180,0.1);
+  }
+  .portal .ring:nth-child(3) {
+    inset: 24px;
+    border-color: rgba(255,200,60,0.5) transparent rgba(255,200,60,0.5) transparent;
+    animation-duration: 2.5s;
+    box-shadow: 0 0 12px rgba(255,200,60,0.1);
+  }
+  .portal .core {
+    position: absolute; inset: 36px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, rgba(255,220,100,0.6), rgba(255,150,50,0.2), transparent);
+    animation: coreGlow 1.5s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(255,200,80,0.3), 0 0 80px rgba(255,150,50,0.15);
+  }
+  .portal .rays {
+    position: absolute; inset: -20px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(255,220,100,0.06) 10%, transparent 20%, transparent 30%, rgba(255,220,100,0.04) 40%, transparent 50%, transparent 60%, rgba(255,220,100,0.06) 70%, transparent 80%, transparent 90%, rgba(255,220,100,0.04) 100%);
+    animation: portalSpin 8s linear infinite;
+  }
+
+  @keyframes portalSpin { to { transform: rotate(360deg); } }
+  @keyframes coreGlow {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+
+  .logo-text {
+    font-size: 52px; font-weight: 900;
+    color: #ffb830;
+    letter-spacing: 6px;
+    font-family: "Arial Black", "Impact", sans-serif;
+    text-shadow:
+      0 0 12px rgba(255,180,48,0.8),
+      0 0 35px rgba(255,150,30,0.5),
+      0 0 70px rgba(255,100,20,0.25),
+      0 2px 0 rgba(180,80,0,0.6),
+      0 4px 0 rgba(120,50,0,0.4);
+    animation: titleGlow 2.5s ease-in-out infinite;
+  }
+  .logo-sub {
+    font-size: 13px; color: #e05b5b;
+    letter-spacing: 6px; margin-top: 8px;
     font-weight: bold;
-    color: #ffe066;
-    margin-bottom: 20px;
-    text-shadow: 0 0 20px rgba(255,224,102,0.5);
+    text-shadow: 0 0 8px rgba(224,91,91,0.4);
   }
-  #loader .bar-bg {
-    width: 200px; height: 8px;
-    background: #2a2d44;
-    border-radius: 4px;
-    overflow: hidden;
+  .logo-divider {
+    width: 180px; height: 2px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, transparent, #e05b5b, transparent);
+    border-radius: 1px;
   }
-  #loader .bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4f8fdc, #e05b5b);
-    border-radius: 4px;
-    width: 0%;
-    transition: width 0.3s;
+
+  @keyframes titleGlow {
+    0%, 100% { text-shadow: 0 0 12px rgba(255,180,48,0.8), 0 0 35px rgba(255,150,30,0.5), 0 0 70px rgba(255,100,20,0.25), 0 2px 0 rgba(180,80,0,0.6), 0 4px 0 rgba(120,50,0,0.4); }
+    50% { text-shadow: 0 0 18px rgba(255,180,48,1), 0 0 50px rgba(255,150,30,0.7), 0 0 100px rgba(255,100,20,0.35), 0 2px 0 rgba(180,80,0,0.6), 0 4px 0 rgba(120,50,0,0.4); }
   }
-  #loader .load-text {
-    color: #6b6f8a;
-    font-size: 13px;
-    margin-top: 12px;
+
+  /* ========== 进度条 ========== */
+  .progress-area {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; width: 420px;
+  }
+  .bar-track {
+    width: 100%; height: 28px;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(120,160,255,0.15);
+    border-radius: 14px;
+    overflow: hidden; position: relative;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 20px rgba(79,143,220,0.08);
+  }
+  .bar-fill {
+    height: 100%; width: 0%;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #3dc8ff, #c850ff, #ff5090, #ffb830);
+    background-size: 300% 100%;
+    animation: barGrad 2.5s linear infinite;
+    position: relative;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 15px rgba(100,150,255,0.3), 0 0 30px rgba(200,80,255,0.15);
+  }
+  .bar-fill::after {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+    animation: barShine 1.8s ease-in-out infinite;
+  }
+  /* 宝石光标 */
+  .bar-gem {
+    position: absolute; top: 50%; right: -8px;
+    width: 16px; height: 16px;
+    transform: translateY(-50%) rotate(45deg);
+    background: linear-gradient(135deg, #fff, #3dc8ff, #c850ff);
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(100,200,255,0.6), 0 0 25px rgba(200,100,255,0.3);
+    animation: gemPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes barGrad { 0%{background-position:0% 0%;} 100%{background-position:300% 0%;} }
+  @keyframes barShine { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+  @keyframes gemPulse { 0%,100%{box-shadow:0 0 12px rgba(100,200,255,0.6),0 0 25px rgba(200,100,255,0.3);} 50%{box-shadow:0 0 18px rgba(100,200,255,0.9),0 0 40px rgba(200,100,255,0.5);} }
+
+  .load-percent {
+    margin-top: 14px; font-size: 22px;
+    color: #ffb830; font-family: "Arial Black", monospace;
+    letter-spacing: 3px; font-weight: 900;
+    text-shadow: 0 0 10px rgba(255,180,48,0.5);
+  }
+
+  /* ========== 彩色圆点加载器 ========== */
+  .dot-ring {
+    position: absolute; bottom: 60px; left: 40px;
+    width: 60px; height: 60px; z-index: 2;
+    animation: portalSpin 3s linear infinite;
+  }
+  .dot-ring .dot {
+    position: absolute; width: 8px; height: 8px;
+    border-radius: 50%; top: 50%; left: 50%;
+    margin: -4px 0 0 -4px;
+  }
+  .dot-ring .dot:nth-child(1) { background:#3dc8ff; transform:rotate(0deg) translateX(24px); }
+  .dot-ring .dot:nth-child(2) { background:#c850ff; transform:rotate(45deg) translateX(24px); }
+  .dot-ring .dot:nth-child(3) { background:#ff5090; transform:rotate(90deg) translateX(24px); }
+  .dot-ring .dot:nth-child(4) { background:#ffb830; transform:rotate(135deg) translateX(24px); }
+  .dot-ring .dot:nth-child(5) { background:#3fa65b; transform:rotate(180deg) translateX(24px); }
+  .dot-ring .dot:nth-child(6) { background:#ff6b3d; transform:rotate(225deg) translateX(24px); }
+  .dot-ring .dot:nth-child(7) { background:#e05b5b; transform:rotate(270deg) translateX(24px); }
+  .dot-ring .dot:nth-child(8) { background:#4f8fdc; transform:rotate(315deg) translateX(24px); }
+
+  /* 加载文字 */
+  .load-text {
+    margin-top: 14px; color: rgba(255,255,255,0.35);
+    font-size: 12px; letter-spacing: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .load-text .dots { display: inline-flex; gap: 4px; }
+  .load-text .dots span {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255,180,48,0.5);
+    animation: dotB 1.2s ease-in-out infinite;
+  }
+  .load-text .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .load-text .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotB { 0%,60%,100%{transform:translateY(0);opacity:0.4;} 30%{transform:translateY(-6px);opacity:1;} }
+
+  /* 底部提示 */
+  #tip {
+    position: fixed; bottom: 8px; left: 0; right: 0;
+    text-align: center;
+    color: rgba(107,111,138,0.5);
+    font-size: 12px; letter-spacing: 1px;
+    pointer-events: none; z-index: 5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 </style>
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="game" width="720" height="680"></canvas>
-    <div id="loader">
-      <div class="logo">🫧 BubbleBlast</div>
-      <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
-      <div class="load-text">正在加载素材...</div>
+<div id="wrap">
+  <canvas id="game" width="720" height="680"></canvas>
+
+  <div id="loader">
+    <div class="loader-bg"></div>
+
+    <!-- 星光 -->
+    <div class="stars">
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div><div class="star"></div>
+      <div class="star"></div><div class="star"></div>
+    </div>
+
+    <!-- 彩色泡泡 -->
+    <div class="bubble b1"></div><div class="bubble b2"></div>
+    <div class="bubble b3"></div><div class="bubble b4"></div>
+    <div class="bubble b5"></div><div class="bubble b6"></div>
+    <div class="bubble b7"></div><div class="bubble b8"></div>
+
+    <!-- Logo -->
+    <div class="logo-area">
+      <div class="portal">
+        <div class="rays"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="core"></div>
+      </div>
+      <div class="logo-text">BUBBLEBLAST</div>
+      <div class="logo-sub">POP THE BUBBLES, SPREAD THE JOY!</div>
+      <div class="logo-divider"></div>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="progress-area">
+      <div class="bar-track">
+        <div class="bar-fill" id="barFill"><div class="bar-gem"></div></div>
+      </div>
+      <div class="load-percent" id="loadPercent">0%</div>
+      <div class="load-text">
+        正在加载素材
+        <span class="dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <!-- 彩色圆点加载器 -->
+    <div class="dot-ring">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div>
     </div>
   </div>
-  <div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
-  <script src="asset-loader.js"></script>
-  <script src="game.js"></script>
+</div>
+
+<div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
+
+<script src="asset-loader.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
