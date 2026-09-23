@@ -1581,32 +1581,31 @@ const Game = {
 
     /* ===== 背景 ===== */
     const bg = ctx.createLinearGradient(0, 0, CW, CH);
-    bg.addColorStop(0, '#0c1028'); bg.addColorStop(0.35, '#101838');
-    bg.addColorStop(0.65, '#0e1430'); bg.addColorStop(1, '#0a0e1e');
+    bg.addColorStop(0, '#0c1028'); bg.addColorStop(0.4, '#101838');
+    bg.addColorStop(0.7, '#0e1430'); bg.addColorStop(1, '#0a0e1e');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
 
-    /* 顶部两束聚光灯 */
-    [0.2, 0.8].forEach(function(fx, i) {
+    /* 顶部聚光灯 */
+    [0.15, 0.85].forEach(function(fx, i) {
       var lx = CW * fx;
-      var sl = ctx.createRadialGradient(lx, 0, 10, lx, CH * 0.5, CH * 0.7);
-      sl.addColorStop(0, i === 0 ? 'rgba(255,120,160,0.1)' : 'rgba(100,160,255,0.1)');
-      sl.addColorStop(0.5, 'rgba(100,100,200,0.03)');
+      var sl = ctx.createRadialGradient(lx, -CH * 0.1, 10, lx, CH * 0.4, CH * 0.8);
+      sl.addColorStop(0, i === 0 ? 'rgba(255,120,160,0.08)' : 'rgba(100,160,255,0.08)');
+      sl.addColorStop(0.5, 'rgba(80,80,160,0.02)');
       sl.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = sl; ctx.fillRect(0, 0, CW, CH);
     });
 
     /* 漂浮光球 */
     var orbs = [
-      'rgba(79,143,220,0.08)','rgba(224,91,91,0.07)','rgba(255,224,102,0.06)',
-      'rgba(63,166,91,0.05)','rgba(200,63,122,0.05)','rgba(100,200,255,0.07)',
-      'rgba(255,160,80,0.05)','rgba(180,100,255,0.05)'
+      'rgba(79,143,220,0.07)','rgba(224,91,91,0.06)','rgba(255,224,102,0.05)',
+      'rgba(63,166,91,0.04)','rgba(200,63,122,0.04)','rgba(100,200,255,0.06)',
+      'rgba(255,160,80,0.04)','rgba(180,100,255,0.04)'
     ];
     for (var i = 0; i < 8; i++) {
-      var sp = 0.12 + i * 0.05;
-      var ox = (0.08 + i * 0.12) * CW, oy = (0.1 + i * 0.1) * CH;
-      var px = ox + Math.sin(t * sp + i * 2.1) * 35;
-      var py = oy + Math.cos(t * sp * 0.7 + i * 1.7) * 28;
-      var r = Math.max(1, 35 + i * 14 + Math.sin(t * 0.4 + i) * 12);
+      var sp = 0.1 + i * 0.04;
+      var px = (0.05 + i * 0.13) * CW + Math.sin(t * sp + i * 2.1) * 30;
+      var py = (0.08 + i * 0.11) * CH + Math.cos(t * sp * 0.6 + i * 1.7) * 25;
+      var r = Math.max(1, 30 + i * 12 + Math.sin(t * 0.35 + i) * 10);
       var g = ctx.createRadialGradient(px, py, 0, px, py, r);
       g.addColorStop(0, orbs[i]); g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = g; ctx.fillRect(px - r, py - r, r * 2, r * 2);
@@ -1614,161 +1613,95 @@ const Game = {
 
     /* 彩色纸屑 */
     var cc = ['#ff6b8a','#3dc8ff','#ffb830','#3fa65b','#c850ff','#ff6b3d','#4f8fdc','#ff50a0'];
-    for (var j = 0; j < 30; j++) {
+    for (var j = 0; j < 20; j++) {
       var sd = j * 97.3;
-      var spd2 = 0.05 + (j % 5) * 0.02;
-      var cx2 = ((t * spd2 + sd * 3) % (CW + 60)) - 30;
-      var cy2 = ((t * spd2 * 0.45 + sd * 2.1) % (CH + 60)) - 30;
-      var w2 = 5 + (j % 3) * 3, h2 = 2 + (j % 2) * 2;
-      ctx.save(); ctx.globalAlpha = 0.28 + Math.sin(t * 1.1 + j) * 0.12;
-      ctx.translate(cx2, cy2); ctx.rotate(t * (0.35 + j * 0.07) + sd);
+      var spd = 0.04 + (j % 4) * 0.015;
+      var cx2 = ((t * spd + sd * 3) % (CW + 40)) - 20;
+      var cy2 = ((t * spd * 0.4 + sd * 2.1) % (CH + 40)) - 20;
+      var w2 = 4 + (j % 3) * 2, h2 = 2 + (j % 2) * 1;
+      ctx.save(); ctx.globalAlpha = 0.22 + Math.sin(t + j) * 0.1;
+      ctx.translate(cx2, cy2); ctx.rotate(t * (0.3 + j * 0.05) + sd);
       ctx.fillStyle = cc[j % cc.length];
       ctx.fillRect(-w2 / 2, -h2 / 2, w2, h2); ctx.restore();
     }
     ctx.globalAlpha = 1;
 
-    /* ===== 右侧角色主视觉 ===== */
+    /* ===== 右侧角色海报 ===== */
     if (CW >= 500) {
       var heroImg = Assets.get('bg/menuHero');
       if (heroImg) {
-        var hcX = CW * 0.70, hcY = CH * 0.50;
-        var hSize = Math.min(CW * 0.55, CH * 0.92);
-
+        var hcX = CW * 0.72, hcY = CH * 0.48;
+        var hSize = Math.min(CW * 0.5, CH * 0.85);
         /* 背后光晕 */
-        var haloR = hSize * 0.6;
-        var halo = ctx.createRadialGradient(hcX, hcY, 10, hcX, hcY, haloR);
-        halo.addColorStop(0, 'rgba(255,140,200,0.1)');
-        halo.addColorStop(0.4, 'rgba(100,150,255,0.05)');
+        var halo = ctx.createRadialGradient(hcX, hcY, 10, hcX, hcY, hSize * 0.55);
+        halo.addColorStop(0, 'rgba(255,140,200,0.08)');
+        halo.addColorStop(0.5, 'rgba(100,150,255,0.04)');
         halo.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = halo;
-        ctx.beginPath(); ctx.arc(hcX, hcY, haloR, 0, Math.PI * 2); ctx.fill();
-
-        /* 直接画（PNG 已做成圆形透明边缘） + 边缘渐变遮罩 */
+        ctx.beginPath(); ctx.arc(hcX, hcY, hSize * 0.55, 0, Math.PI * 2); ctx.fill();
+        /* 画海报（PNG 已有柔和透明边缘） */
         ctx.save();
         ctx.translate(hcX, hcY);
-        ctx.rotate(Math.sin(t * 0.15) * 0.005);
         ctx.drawImage(heroImg, -hSize / 2, -hSize / 2, hSize, hSize);
         ctx.restore();
-
-        /* 边缘羽化：径向渐变从透明到背景色 */
-        var fadeR = hSize * 0.85;
-        var fade = ctx.createRadialGradient(hcX, hcY, fadeR * 0.08, hcX, hcY, fadeR);
-        fade.addColorStop(0, 'rgba(10,14,30,0)');
-        fade.addColorStop(0.12, 'rgba(10,14,30,0)');
-        fade.addColorStop(0.25, 'rgba(10,14,30,0.001)');
-        fade.addColorStop(0.35, 'rgba(10,14,30,0.003)');
-        fade.addColorStop(0.42, 'rgba(10,14,30,0.01)');
-        fade.addColorStop(0.46, 'rgba(10,14,30,0.03)');
-        fade.addColorStop(0.49, 'rgba(10,14,30,0.06)');
-        fade.addColorStop(0.52, 'rgba(10,14,30,0.12)');
-        fade.addColorStop(0.54, 'rgba(10,14,30,0.2)');
-        fade.addColorStop(0.57, 'rgba(10,14,30,0.3)');
-        fade.addColorStop(0.6, 'rgba(10,14,30,0.4)');
-        fade.addColorStop(0.64, 'rgba(10,14,30,0.52)');
-        fade.addColorStop(0.68, 'rgba(10,14,30,0.62)');
-        fade.addColorStop(0.72, 'rgba(10,14,30,0.72)');
-        fade.addColorStop(0.78, 'rgba(10,14,30,0.82)');
-        fade.addColorStop(0.84, 'rgba(10,14,30,0.9)');
-        fade.addColorStop(0.9, 'rgba(10,14,30,0.95)');
-        fade.addColorStop(0.96, 'rgba(10,14,30,0.99)');
-        fade.addColorStop(1, 'rgba(10,14,30,1)');
-        ctx.fillStyle = fade;
-        ctx.beginPath(); ctx.arc(hcX, hcY, fadeR, 0, Math.PI * 2); ctx.fill();
-
-        /* 四角补渐变 */
-        var cornerR = hSize * 0.16;
-        [[-0.20, -0.20], [0.20, -0.20], [-0.20, 0.20], [0.20, 0.20]].forEach(function(c) {
-          var cx2 = hcX + c[0] * hSize;
-          var cy2 = hcY + c[1] * hSize;
-          var cg = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, cornerR);
-          cg.addColorStop(0, 'rgba(10,14,30,1)');
-          cg.addColorStop(0.06, 'rgba(10,14,30,0.99)');
-          cg.addColorStop(0.14, 'rgba(10,14,30,0.9)');
-          cg.addColorStop(0.22, 'rgba(10,14,30,0.75)');
-          cg.addColorStop(0.3, 'rgba(10,14,30,0.55)');
-          cg.addColorStop(0.38, 'rgba(10,14,30,0.38)');
-          cg.addColorStop(0.46, 'rgba(10,14,30,0.22)');
-          cg.addColorStop(0.55, 'rgba(10,14,30,0.1)');
-          cg.addColorStop(0.65, 'rgba(10,14,30,0.04)');
-          cg.addColorStop(0.8, 'rgba(10,14,30,0.008)');
-          cg.addColorStop(1, 'rgba(10,14,30,0)');
-          ctx.fillStyle = cg;
-          ctx.fillRect(cx2 - cornerR, cy2 - cornerR, cornerR * 2, cornerR * 2);
-        });
-      } else {
-        /* 降级：手绘角色 */
-        var charX = CW * 0.72, charY = CH * 0.46;
-        var charR = Math.min(CW, CH) * 0.22;
-        var hR = charR * 2.2 + Math.sin(t * 0.3) * 20;
-        var hl = ctx.createRadialGradient(charX, charY, 10, charX, charY, hR);
-        hl.addColorStop(0, 'rgba(255,140,200,0.14)');
-        hl.addColorStop(0.35, 'rgba(120,160,255,0.08)');
-        hl.addColorStop(0.6, 'rgba(255,180,60,0.04)');
-        hl.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(charX, charY, hR, 0, Math.PI * 2); ctx.fill();
-        this.drawChar({
-          x: charX, y: charY, alive: true, dying: 0,
-          color: '#ff6bb5', face: { x: 0, y: 0 },
-          anim: t, moving: false, isAI: false
-        });
       }
     }
 
     /* ===== 左侧标题 + 菜单 ===== */
-    var mx = Math.max(32, CW * 0.05);
-    var titleY = CH * 0.05;
+    var mx = Math.max(36, CW * 0.055);
+    var titleY = CH * 0.06;
 
     /* --- 泡泡爆破 大标题 --- */
     ctx.save();
-    var tSz = Math.round(Math.min(CW * 0.058, CH * 0.105));
-    /* 标题底光 */
-    var tgl = ctx.createRadialGradient(mx + tSz * 1.8, titleY + tSz * 0.4, 5, mx + tSz * 1.8, titleY + tSz * 0.4, tSz * 3);
-    tgl.addColorStop(0, 'rgba(80,140,255,0.16)'); tgl.addColorStop(0.4, 'rgba(255,100,180,0.08)'); tgl.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = tgl; ctx.fillRect(mx - 50, titleY - 40, tSz * 5, tSz * 2.5);
+    var tSz = Math.round(Math.min(CW * 0.055, CH * 0.1));
 
-    /* "泡泡" 蓝色渐变感 */
+    /* 标题底光 */
+    var tgl = ctx.createRadialGradient(mx + tSz * 1.5, titleY + tSz * 0.4, 5, mx + tSz * 1.5, titleY + tSz * 0.4, tSz * 2.5);
+    tgl.addColorStop(0, 'rgba(80,140,255,0.12)'); tgl.addColorStop(0.5, 'rgba(255,100,180,0.06)'); tgl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tgl; ctx.fillRect(mx - 40, titleY - 30, tSz * 4, tSz * 2);
+
     ctx.font = '900 ' + tSz + 'px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    /* 外发光 */
-    ctx.shadowColor = 'rgba(60,140,255,1)'; ctx.shadowBlur = 35;
+
+    /* "泡泡" 蓝色 - 双层发光 */
+    ctx.shadowColor = 'rgba(60,140,255,1)'; ctx.shadowBlur = 30;
     ctx.fillStyle = '#4a9fff'; ctx.fillText('泡泡', mx, titleY);
-    /* 内亮层 */
-    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(160,220,255,0.8)';
+    ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(160,220,255,0.7)';
     ctx.fillStyle = '#90d0ff'; ctx.fillText('泡泡', mx, titleY);
 
-    /* "爆破" 粉色渐变感 */
+    /* "爆破" 粉色 - 双层发光 */
     var pw = ctx.measureText('泡泡').width;
-    ctx.shadowColor = 'rgba(255,70,160,1)'; ctx.shadowBlur = 35;
+    ctx.shadowColor = 'rgba(255,70,160,1)'; ctx.shadowBlur = 30;
     ctx.fillStyle = '#ff50a0'; ctx.fillText('爆破', mx + pw, titleY);
-    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(255,160,200,0.8)';
+    ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,160,200,0.7)';
     ctx.fillStyle = '#ff90c8'; ctx.fillText('爆破', mx + pw, titleY);
     ctx.shadowBlur = 0;
 
-    /* 标题两侧星形装饰 */
-    var starSz = tSz * 0.18;
-    [[mx - starSz * 1.5, titleY + tSz * 0.3, '#5aadff'], [mx + pw + tSz * 2.3, titleY + tSz * 0.5, '#ff6bb5']].forEach(function(s, si) {
-      ctx.fillStyle = s[2]; ctx.globalAlpha = 0.7 + Math.sin(t * 2.5 + si * 1.5) * 0.25;
+    /* 标题两侧星形 */
+    var starSz = tSz * 0.16;
+    [[mx - starSz * 1.2, titleY + tSz * 0.25, '#5aadff'], [mx + pw + tSz * 2, titleY + tSz * 0.45, '#ff6bb5']].forEach(function(s, si) {
+      ctx.fillStyle = s[2]; ctx.globalAlpha = 0.6 + Math.sin(t * 2.5 + si * 1.5) * 0.25;
       ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(t * 0.5 + si);
       ctx.beginPath();
       for (var k = 0; k < 4; k++) {
         var a2 = k * Math.PI / 2;
         ctx.lineTo(Math.cos(a2) * starSz, Math.sin(a2) * starSz);
-        ctx.lineTo(Math.cos(a2 + Math.PI / 4) * starSz * 0.4, Math.sin(a2 + Math.PI / 4) * starSz * 0.4);
+        ctx.lineTo(Math.cos(a2 + Math.PI / 4) * starSz * 0.35, Math.sin(a2 + Math.PI / 4) * starSz * 0.35);
       }
       ctx.closePath(); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
     });
     ctx.restore();
 
-    /* 标题下装饰线 + 菱形 */
-    var lineY = titleY + tSz + 14;
-    var lg = ctx.createLinearGradient(mx, 0, mx + 280, 0);
-    lg.addColorStop(0, 'rgba(80,160,255,0.6)'); lg.addColorStop(0.45, 'rgba(255,100,180,0.5)'); lg.addColorStop(1, 'rgba(255,100,180,0)');
-    ctx.strokeStyle = lg; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(mx, lineY); ctx.lineTo(mx + 280, lineY); ctx.stroke();
-    [[mx + 90, '#5aadff'], [mx + 170, '#ff6bb5']].forEach(function(d, di) {
-      ctx.fillStyle = d[1]; ctx.globalAlpha = 0.7 + Math.sin(t * 2.2 + di) * 0.2;
-      ctx.beginPath(); ctx.moveTo(d[0], lineY - 5); ctx.lineTo(d[0] + 5, lineY);
-      ctx.lineTo(d[0], lineY + 5); ctx.lineTo(d[0] - 5, lineY); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    /* 装饰线 */
+    var lineY = titleY + tSz + 12;
+    var lg = ctx.createLinearGradient(mx, 0, mx + 240, 0);
+    lg.addColorStop(0, 'rgba(80,160,255,0.5)'); lg.addColorStop(0.45, 'rgba(255,100,180,0.4)'); lg.addColorStop(1, 'rgba(255,100,180,0)');
+    ctx.strokeStyle = lg; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(mx, lineY); ctx.lineTo(mx + 240, lineY); ctx.stroke();
+    [[mx + 75, '#5aadff'], [mx + 150, '#ff6bb5']].forEach(function(d, di) {
+      ctx.fillStyle = d[1]; ctx.globalAlpha = 0.6 + Math.sin(t * 2 + di) * 0.2;
+      ctx.beginPath(); ctx.moveTo(d[0], lineY - 4); ctx.lineTo(d[0] + 4, lineY);
+      ctx.lineTo(d[0], lineY + 4); ctx.lineTo(d[0] - 4, lineY); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
     });
 
     /* ===== 菜单卡片 ===== */
@@ -1778,9 +1711,9 @@ const Game = {
       { title: '道具挑战', desc: '限定道具 · 极致操作', color: '#ffd23d', icon: 'items/shield' },
       { title: '无尽模式', desc: '越战越勇 · 冲击极限', color: '#3fa65b', icon: 'ui/star-badge' },
     ];
-    var listY = lineY + CH * 0.055;
-    var rowH = Math.min(CH * 0.14, 95);
-    var cardW = Math.min(CW * 0.34, 380);
+    var listY = lineY + CH * 0.05;
+    var rowH = Math.min(CH * 0.13, 90);
+    var cardW = Math.min(CW * 0.32, 360);
     var cardH = rowH - 12;
     this.menuRects = [];
 
@@ -1793,21 +1726,22 @@ const Game = {
       var isSelected = this.menuIndex === i;
 
       /* 卡片底 */
-      ctx.fillStyle = isSelected ? 'rgba(18,28,58,0.9)' : isHover ? 'rgba(16,24,50,0.8)' : 'rgba(12,18,40,0.7)';
+      ctx.fillStyle = isSelected ? 'rgba(18,28,58,0.88)' : isHover ? 'rgba(16,24,50,0.78)' : 'rgba(12,18,40,0.68)';
       this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
 
       /* 边框 */
       if (isSelected) {
-        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 26;
+        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 22;
         ctx.strokeStyle = it.color; ctx.lineWidth = 2.5;
-        ctx.globalAlpha = 0.85 + Math.sin(t * 3.5) * 0.12;
+        ctx.globalAlpha = 0.85 + Math.sin(t * 3.5) * 0.1;
         this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
         ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
+        /* 底光 */
         var bgG = ctx.createLinearGradient(btnX, y, btnX + btnW, y);
-        bgG.addColorStop(0, it.color + '18'); bgG.addColorStop(0.5, 'transparent');
+        bgG.addColorStop(0, it.color + '12'); bgG.addColorStop(0.5, 'transparent');
         ctx.fillStyle = bgG; this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
       } else if (isHover) {
-        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 12;
+        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 10;
         ctx.strokeStyle = it.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
         this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
         ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
@@ -1817,37 +1751,37 @@ const Game = {
       }
 
       /* 左色条 */
-      var barW = isSelected ? 6 : 4;
+      var barW = isSelected ? 5 : 3;
       ctx.save();
-      if (isSelected || isHover) { ctx.shadowColor = it.color; ctx.shadowBlur = isSelected ? 14 : 6; }
-      ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : isHover ? 0.85 : 0.6;
+      if (isSelected || isHover) { ctx.shadowColor = it.color; ctx.shadowBlur = isSelected ? 12 : 5; }
+      ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : isHover ? 0.8 : 0.5;
       this.roundRect(btnX + 1, y + 8, barW, btnH - 16, barW / 2); ctx.fill();
       ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
 
       /* 图标圆底 */
-      var iconR = 17, iconCx = btnX + 36, iconCy = y + btnH / 2;
+      var iconR = 16, iconCx = btnX + 34, iconCy = y + btnH / 2;
       var ig = ctx.createRadialGradient(iconCx - 4, iconCy - 4, 2, iconCx, iconCy, iconR);
-      ig.addColorStop(0, it.color + '40'); ig.addColorStop(1, it.color + '12');
+      ig.addColorStop(0, it.color + '35'); ig.addColorStop(1, it.color + '10');
       ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.fill();
-      ctx.save(); ctx.strokeStyle = it.color; ctx.globalAlpha = isSelected ? 0.8 : 0.4;
-      ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.stroke();
+      ctx.save(); ctx.strokeStyle = it.color; ctx.globalAlpha = isSelected ? 0.7 : 0.35;
+      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1; ctx.restore();
 
       var iconImg = Assets.get(it.icon);
       if (iconImg) {
-        ctx.save(); ctx.globalAlpha = isSelected ? 1 : 0.7;
-        ctx.drawImage(iconImg, iconCx - 13, iconCy - 13, 26, 26);
+        ctx.save(); ctx.globalAlpha = isSelected ? 1 : 0.65;
+        ctx.drawImage(iconImg, iconCx - 12, iconCy - 12, 24, 24);
         ctx.globalAlpha = 1; ctx.restore();
       } else {
-        ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : 0.7;
-        ctx.beginPath(); ctx.arc(iconCx, iconCy, 10, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : 0.6;
+        ctx.beginPath(); ctx.arc(iconCx, iconCy, 9, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
       }
 
       /* 文字 */
-      var tCol = isSelected ? '#ffe066' : isHover ? '#e8eeff' : '#b0bcda';
-      var dCol = isSelected ? 'rgba(255,248,208,0.85)' : 'rgba(130,145,190,0.8)';
-      this.drawOutlinedText(it.title, btnX + 64, iconCy - 8, Math.round(Math.min(CW * 0.018, 24)), tCol, 'left');
-      this.drawOutlinedText(it.desc, btnX + 64, iconCy + 11, Math.round(Math.min(CW * 0.010, 13)), dCol, 'left');
+      var tCol = isSelected ? '#ffe066' : isHover ? '#e0e8ff' : '#a8b4d0';
+      var dCol = isSelected ? 'rgba(255,248,208,0.8)' : 'rgba(120,135,180,0.75)';
+      this.drawOutlinedText(it.title, btnX + 60, iconCy - 7, Math.round(Math.min(CW * 0.018, 24)), tCol, 'left');
+      this.drawOutlinedText(it.desc, btnX + 60, iconCy + 11, Math.round(Math.min(CW * 0.01, 13)), dCol, 'left');
     }.bind(this));
 
     /* ===== 底部按键提示 ===== */
@@ -1858,32 +1792,33 @@ const Game = {
       { caps: ['V'], label: '全屏' },
       { caps: ['M'], label: '音效' },
     ];
-    var fx = mx, ky = CH - 30;
+    var fx = mx, ky = CH - 28;
     ctx.font = '12px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     segs.forEach(function(s) {
       var x = fx;
       s.caps.forEach(function(c) {
-        if (keycapImg) { ctx.drawImage(keycapImg, x + 4, ky - 10, 22, 22); }
-        else { this.drawKeycap(x + 13, ky, c); }
-        x += 28;
+        if (keycapImg) { ctx.drawImage(keycapImg, x + 3, ky - 10, 20, 20); }
+        else { this.drawKeycap(x + 12, ky, c); }
+        x += 26;
       }.bind(this));
-      ctx.fillStyle = 'rgba(150,165,200,0.5)';
+      ctx.fillStyle = 'rgba(140,155,195,0.45)';
       ctx.fillText(s.label, x + 5, ky + 1);
-      fx = x + 5 + ctx.measureText(s.label).width + 20;
+      fx = x + 5 + ctx.measureText(s.label).width + 18;
     }.bind(this));
 
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.font = '11px monospace';
     ctx.fillText('Version 1.0.0', 10, CH - 10);
 
-    /* ===== 暗角 ===== */
+    /* 暗角 */
     var vg = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.35, CW / 2, CH / 2, Math.max(CW, CH) * 0.75);
-    vg.addColorStop(0, 'rgba(5,8,20,0)'); vg.addColorStop(0.6, 'rgba(5,8,20,0.15)'); vg.addColorStop(1, 'rgba(5,8,20,0.45)');
+    vg.addColorStop(0, 'rgba(5,8,20,0)'); vg.addColorStop(0.6, 'rgba(5,8,20,0.12)'); vg.addColorStop(1, 'rgba(5,8,20,0.4)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, CW, CH);
 
     ctx.restore();
   },
+
 
 
 };
