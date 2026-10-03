@@ -116,12 +116,14 @@ document.addEventListener('fullscreenchange', () => {
 cvs.addEventListener('dblclick', toggleFullscreen);
 
 /* ---- 菜单鼠标支持：悬停高亮 + 点击进入 ---- */
-function menuPosFromEvent(e) {
-  const rect = cvs.getBoundingClientRect();
-  const px = (e.clientX - rect.left) * (cvs.width / rect.width);
-  const py = (e.clientY - rect.top) * (cvs.height / rect.height);
-  return { x: (px - viewOffX) / viewScale, y: (py - viewOffY) / viewScale };
-}
+  // 菜单鼠标支持：直接使用画布物理像素坐标（菜单在物理空间绘制）
+  function menuPosFromEvent(e) {
+    const rect = cvs.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (cvs.width / rect.width),
+      y: (e.clientY - rect.top) * (cvs.height / rect.height),
+    };
+  }
 cvs.addEventListener('mousemove', e => {
   if (Game.state !== 'menu') { cvs.style.cursor = 'default'; return; }
   const p = menuPosFromEvent(e);
@@ -1515,13 +1517,8 @@ const Game = {
     // 影子
     ctx.fillStyle = 'rgba(0,0,0,.25)';
     ctx.beginPath(); ctx.ellipse(0, r + 3, 12, 4.5, 0, 0, Math.PI * 2); ctx.fill();
-    // 小脚（交替迈步）
-    ctx.fillStyle = this.shade(e.color, -58);
-    const step = e.moving ? Math.sin(walkT) * 4 : 0;
-    ctx.beginPath(); ctx.ellipse(-6, r - 0.5 + Math.max(0, step) * 0.35, 4.6, 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(6, r - 0.5 + Math.max(0, -step) * 0.35, 4.6, 3, 0, 0, Math.PI * 2); ctx.fill();
-    // 护盾光环（画在身体外圈）
-    const bodyY = -bob - r * 0.5;
+    // 身体（无脚：圆滚滚的果冻身材直接落在影子上，经典泡泡堂造型）
+    const bodyY = -bob - 3;
     if (e.shield > 0) {
       ctx.strokeStyle = `rgba(255,220,90,${0.45 + Math.sin(this.time * 8) * 0.25})`;
       ctx.lineWidth = 3;
@@ -1830,242 +1827,232 @@ const Game = {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const CW = cvs.width, CH = cvs.height;
+    const S = CH / 1080;   // 全局比例
 
     /* ===== 背景 ===== */
-    const bg = ctx.createLinearGradient(0, 0, CW, CH);
-    bg.addColorStop(0, '#0c1028'); bg.addColorStop(0.4, '#101838');
-    bg.addColorStop(0.7, '#0e1430'); bg.addColorStop(1, '#0a0e1e');
+    const bg = ctx.createLinearGradient(0, 0, 0, CH);
+    bg.addColorStop(0, '#0d1226'); bg.addColorStop(0.55, '#121a38'); bg.addColorStop(1, '#0a0e1e');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
 
-    /* 顶部聚光灯 */
-    [0.15, 0.85].forEach(function(fx, i) {
-      var lx = CW * fx;
-      var sl = ctx.createRadialGradient(lx, -CH * 0.1, 10, lx, CH * 0.4, CH * 0.8);
-      sl.addColorStop(0, i === 0 ? 'rgba(255,120,160,0.08)' : 'rgba(100,160,255,0.08)');
-      sl.addColorStop(0.5, 'rgba(80,80,160,0.02)');
-      sl.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = sl; ctx.fillRect(0, 0, CW, CH);
-    });
+    // 两团氛围光（右上暖粉 / 左下冷蓝）
+    var glow1 = ctx.createRadialGradient(CW * 0.78, CH * 0.3, 10, CW * 0.78, CH * 0.3, CH * 0.7);
+    glow1.addColorStop(0, 'rgba(255,120,180,0.07)'); glow1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow1; ctx.fillRect(0, 0, CW, CH);
+    var glow2 = ctx.createRadialGradient(CW * 0.12, CH * 0.85, 10, CW * 0.12, CH * 0.85, CH * 0.6);
+    glow2.addColorStop(0, 'rgba(70,130,255,0.07)'); glow2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow2; ctx.fillRect(0, 0, CW, CH);
 
-    /* 漂浮光球 */
-    var orbs = [
-      'rgba(79,143,220,0.07)','rgba(224,91,91,0.06)','rgba(255,224,102,0.05)',
-      'rgba(63,166,91,0.04)','rgba(200,63,122,0.04)','rgba(100,200,255,0.06)',
-      'rgba(255,160,80,0.04)','rgba(180,100,255,0.04)'
-    ];
-    for (var i = 0; i < 8; i++) {
-      var sp = 0.1 + i * 0.04;
-      var px = (0.05 + i * 0.13) * CW + Math.sin(t * sp + i * 2.1) * 30;
-      var py = (0.08 + i * 0.11) * CH + Math.cos(t * sp * 0.6 + i * 1.7) * 25;
-      var r = Math.max(1, 30 + i * 12 + Math.sin(t * 0.35 + i) * 10);
-      var g = ctx.createRadialGradient(px, py, 0, px, py, r);
-      g.addColorStop(0, orbs[i]); g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g; ctx.fillRect(px - r, py - r, r * 2, r * 2);
-    }
-
-    /* 彩色纸屑 */
-    var cc = ['#ff6b8a','#3dc8ff','#ffb830','#3fa65b','#c850ff','#ff6b3d','#4f8fdc','#ff50a0'];
-    for (var j = 0; j < 20; j++) {
-      var sd = j * 97.3;
-      var spd = 0.04 + (j % 4) * 0.015;
-      var cx2 = ((t * spd + sd * 3) % (CW + 40)) - 20;
-      var cy2 = ((t * spd * 0.4 + sd * 2.1) % (CH + 40)) - 20;
-      var w2 = 4 + (j % 3) * 2, h2 = 2 + (j % 2) * 1;
-      ctx.save(); ctx.globalAlpha = 0.22 + Math.sin(t + j) * 0.1;
-      ctx.translate(cx2, cy2); ctx.rotate(t * (0.3 + j * 0.05) + sd);
-      ctx.fillStyle = cc[j % cc.length];
-      ctx.fillRect(-w2 / 2, -h2 / 2, w2, h2); ctx.restore();
+    // 少量上升光点
+    for (var i = 0; i < 10; i++) {
+      var sp = 0.12 + i * 0.03;
+      var px = ((i * 191.3) % 100 / 100) * CW + Math.sin(t * sp + i * 2.1) * 20 * S;
+      var py = CH - ((t * 26 * S + i * 137 * S) % (CH + 80 * S));
+      var rr = (2 + (i % 3) * 2) * S;
+      ctx.globalAlpha = 0.10 + (i % 3) * 0.05;
+      ctx.fillStyle = ['#7ea8ff', '#ff8fc0', '#ffd76b'][i % 3];
+      ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    /* ===== 右侧角色海报 ===== */
-    if (CW >= 500) {
-      var heroImg = Assets.get('bg/menuHero');
-      if (heroImg) {
-        var hcX = CW * 0.72, hcY = CH * 0.48;
-        var hSize = Math.min(CW * 0.5, CH * 0.85);
-        /* 背后光晕 */
-        var halo = ctx.createRadialGradient(hcX, hcY, 10, hcX, hcY, hSize * 0.55);
-        halo.addColorStop(0, 'rgba(255,140,200,0.08)');
-        halo.addColorStop(0.5, 'rgba(100,150,255,0.04)');
-        halo.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = halo;
-        ctx.beginPath(); ctx.arc(hcX, hcY, hSize * 0.55, 0, Math.PI * 2); ctx.fill();
-        /* 画海报（PNG 已有柔和透明边缘） */
-        ctx.save();
-        ctx.translate(hcX, hcY);
-        ctx.drawImage(heroImg, -hSize / 2, -hSize / 2, hSize, hSize);
-        ctx.restore();
-      }
-    }
-
-    /* ===== 左侧标题 + 菜单 ===== */
-    var mx = Math.max(36, CW * 0.055);
-    var titleY = CH * 0.06;
-
-    /* --- 泡泡爆破 大标题 --- */
-    ctx.save();
-    var tSz = Math.round(Math.min(CW * 0.055, CH * 0.1));
-
-    /* 标题底光 */
-    var tgl = ctx.createRadialGradient(mx + tSz * 1.5, titleY + tSz * 0.4, 5, mx + tSz * 1.5, titleY + tSz * 0.4, tSz * 2.5);
-    tgl.addColorStop(0, 'rgba(80,140,255,0.12)'); tgl.addColorStop(0.5, 'rgba(255,100,180,0.06)'); tgl.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = tgl; ctx.fillRect(mx - 40, titleY - 30, tSz * 4, tSz * 2);
-
-    ctx.font = '900 ' + tSz + 'px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-
-    /* "泡泡" 蓝色 - 双层发光 */
-    ctx.shadowColor = 'rgba(60,140,255,1)'; ctx.shadowBlur = 30;
-    ctx.fillStyle = '#4a9fff'; ctx.fillText('泡泡', mx, titleY);
-    ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(160,220,255,0.7)';
-    ctx.fillStyle = '#90d0ff'; ctx.fillText('泡泡', mx, titleY);
-
-    /* "爆破" 粉色 - 双层发光 */
-    var pw = ctx.measureText('泡泡').width;
-    ctx.shadowColor = 'rgba(255,70,160,1)'; ctx.shadowBlur = 30;
-    ctx.fillStyle = '#ff50a0'; ctx.fillText('爆破', mx + pw, titleY);
-    ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,160,200,0.7)';
-    ctx.fillStyle = '#ff90c8'; ctx.fillText('爆破', mx + pw, titleY);
-    ctx.shadowBlur = 0;
-
-    /* 标题两侧星形 */
-    var starSz = tSz * 0.16;
-    [[mx - starSz * 1.2, titleY + tSz * 0.25, '#5aadff'], [mx + pw + tSz * 2, titleY + tSz * 0.45, '#ff6bb5']].forEach(function(s, si) {
-      ctx.fillStyle = s[2]; ctx.globalAlpha = 0.6 + Math.sin(t * 2.5 + si * 1.5) * 0.25;
-      ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(t * 0.5 + si);
-      ctx.beginPath();
-      for (var k = 0; k < 4; k++) {
-        var a2 = k * Math.PI / 2;
-        ctx.lineTo(Math.cos(a2) * starSz, Math.sin(a2) * starSz);
-        ctx.lineTo(Math.cos(a2 + Math.PI / 4) * starSz * 0.35, Math.sin(a2 + Math.PI / 4) * starSz * 0.35);
-      }
-      ctx.closePath(); ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
-    });
-    ctx.restore();
-
-    /* 装饰线 */
-    var lineY = titleY + tSz + 12;
-    var lg = ctx.createLinearGradient(mx, 0, mx + 240, 0);
-    lg.addColorStop(0, 'rgba(80,160,255,0.5)'); lg.addColorStop(0.45, 'rgba(255,100,180,0.4)'); lg.addColorStop(1, 'rgba(255,100,180,0)');
-    ctx.strokeStyle = lg; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(mx, lineY); ctx.lineTo(mx + 240, lineY); ctx.stroke();
-    [[mx + 75, '#5aadff'], [mx + 150, '#ff6bb5']].forEach(function(d, di) {
-      ctx.fillStyle = d[1]; ctx.globalAlpha = 0.6 + Math.sin(t * 2 + di) * 0.2;
-      ctx.beginPath(); ctx.moveTo(d[0], lineY - 4); ctx.lineTo(d[0] + 4, lineY);
-      ctx.lineTo(d[0], lineY + 4); ctx.lineTo(d[0] - 4, lineY); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-    });
-
-    /* ===== 菜单卡片 ===== */
-    var items = [
-      { title: '单人闯关', desc: '挑战 AI 敌人 · 关卡无限', color: '#4f8fdc', icon: 'items/bomb' },
-      { title: '双人对战', desc: '同屏 1v1 · 先胜三回合', color: '#e05b5b', icon: 'items/fire' },
-      { title: '道具挑战', desc: '限定道具 · 极致操作', color: '#ffd23d', icon: 'items/shield' },
-      { title: '无尽模式', desc: '越战越勇 · 冲击极限', color: '#3fa65b', icon: 'ui/star-badge' },
+    /* ===== 右侧主视觉：光泽糖果泡泡群 ===== */
+    var orbs = [
+      { x: 0.700, y: 0.335, r: 0.120, c1: '#6fd2ff', c2: '#1d5fb0', icon: 'bomb',  ph: 0.0, amp: 14 },
+      { x: 0.865, y: 0.175, r: 0.072, c1: '#ffd76b', c2: '#c07f16', icon: 'star',  ph: 1.2, amp: 10 },
+      { x: 0.895, y: 0.500, r: 0.098, c1: '#ff92c2', c2: '#b0337a', icon: 'heart', ph: 2.1, amp: 12 },
+      { x: 0.730, y: 0.690, r: 0.082, c1: '#8fe08f', c2: '#2d8a3e', icon: null,    ph: 3.0, amp: 9 },
+      { x: 0.575, y: 0.545, r: 0.058, c1: '#c79bff', c2: '#6b34c0', icon: 'fire',  ph: 4.0, amp: 11 },
+      { x: 0.880, y: 0.815, r: 0.062, c1: '#ffb35e', c2: '#c06a12', icon: null,    ph: 5.0, amp: 10 },
     ];
-    var listY = lineY + CH * 0.05;
-    var rowH = Math.min(CH * 0.13, 90);
-    var cardW = Math.min(CW * 0.32, 360);
-    var cardH = rowH - 12;
-    this.menuRects = [];
-
-    items.forEach(function(it, i) {
-      var y = listY + i * rowH;
-      var btnX = mx - 4, btnW = cardW, btnH = cardH;
-      this.menuRects.push({ x: btnX, y: y, w: btnW, h: btnH });
-
-      var isHover = this.hoverIndex === i;
-      var isSelected = this.menuIndex === i;
-
-      /* 卡片底 */
-      ctx.fillStyle = isSelected ? 'rgba(18,28,58,0.88)' : isHover ? 'rgba(16,24,50,0.78)' : 'rgba(12,18,40,0.68)';
-      this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
-
-      /* 边框 */
-      if (isSelected) {
-        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 22;
-        ctx.strokeStyle = it.color; ctx.lineWidth = 2.5;
-        ctx.globalAlpha = 0.85 + Math.sin(t * 3.5) * 0.1;
-        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
-        /* 底光 */
-        var bgG = ctx.createLinearGradient(btnX, y, btnX + btnW, y);
-        bgG.addColorStop(0, it.color + '12'); bgG.addColorStop(0.5, 'transparent');
-        ctx.fillStyle = bgG; this.roundRect(btnX, y, btnW, btnH, 14); ctx.fill();
-      } else if (isHover) {
-        ctx.save(); ctx.shadowColor = it.color; ctx.shadowBlur = 10;
-        ctx.strokeStyle = it.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
-      } else {
-        ctx.strokeStyle = 'rgba(130,170,255,0.1)'; ctx.lineWidth = 1;
-        this.roundRect(btnX, y, btnW, btnH, 14); ctx.stroke();
+    orbs.forEach(function(o) {
+      var ox = o.x * CW, oy = o.y * CH + Math.sin(t * 0.9 + o.ph) * o.amp * S;
+      var orad = o.r * CH;
+      // 背后光晕
+      var halo = ctx.createRadialGradient(ox, oy, orad * 0.5, ox, oy, orad * 1.9);
+      halo.addColorStop(0, 'rgba(255,255,255,0.10)');
+      halo.addColorStop(0.4, o.c1 + '26');
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(ox, oy, orad * 1.9, 0, Math.PI * 2); ctx.fill();
+      // 本体
+      var body = ctx.createRadialGradient(ox - orad * 0.35, oy - orad * 0.4, orad * 0.1, ox, oy, orad);
+      body.addColorStop(0, o.c1);
+      body.addColorStop(0.55, o.c2);
+      body.addColorStop(1, o.c2);
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.arc(ox, oy, orad, 0, Math.PI * 2); ctx.fill();
+      // 底部透光弧（糖果感）
+      ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+      ctx.lineWidth = orad * 0.07; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(ox, oy, orad * 0.86, Math.PI * 0.25, Math.PI * 0.75); ctx.stroke();
+      // 顶部大高光
+      var spec = ctx.createRadialGradient(ox - orad * 0.38, oy - orad * 0.45, 1, ox - orad * 0.38, oy - orad * 0.45, orad * 0.55);
+      spec.addColorStop(0, 'rgba(255,255,255,0.85)');
+      spec.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = spec;
+      ctx.beginPath(); ctx.ellipse(ox - orad * 0.38, oy - orad * 0.45, orad * 0.42, orad * 0.30, -0.5, 0, Math.PI * 2); ctx.fill();
+      // 小亮点
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(ox + orad * 0.25, oy - orad * 0.55, orad * 0.06, 0, Math.PI * 2); ctx.fill();
+      // 内芯图标（随泡泡尺寸缩放）
+      if (o.icon === 'bomb' || o.icon === 'fire') {
+        ctx.save();
+        ctx.translate(ox, oy + orad * 0.06);
+        var k = orad / 30;
+        ctx.scale(k, k);
+        this.drawItemIcon(o.icon === 'bomb' ? ITEM_BOMB : ITEM_FIRE, 0, 0);
+        ctx.restore();
+      } else if (o.icon === 'star') {
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        for (var k = 0; k < 10; k++) {
+          var a2 = k * Math.PI / 5 - Math.PI / 2;
+          var rr2 = k % 2 ? orad * 0.22 : orad * 0.48;
+          var sx2 = ox + Math.cos(a2) * rr2, sy2 = oy + Math.sin(a2) * rr2;
+          k ? ctx.lineTo(sx2, sy2) : ctx.moveTo(sx2, sy2);
+        }
+        ctx.closePath(); ctx.fill();
+      } else if (o.icon === 'heart') {
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        var hs = orad * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ox, oy + hs * 0.75);
+        ctx.bezierCurveTo(ox - hs * 1.2, oy - hs * 0.2, ox - hs * 0.6, oy - hs * 0.9, ox, oy - hs * 0.25);
+        ctx.bezierCurveTo(ox + hs * 0.6, oy - hs * 0.9, ox + hs * 1.2, oy - hs * 0.2, ox, oy + hs * 0.75);
+        ctx.fill();
       }
-
-      /* 左色条 */
-      var barW = isSelected ? 5 : 3;
-      ctx.save();
-      if (isSelected || isHover) { ctx.shadowColor = it.color; ctx.shadowBlur = isSelected ? 12 : 5; }
-      ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : isHover ? 0.8 : 0.5;
-      this.roundRect(btnX + 1, y + 8, barW, btnH - 16, barW / 2); ctx.fill();
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
-
-      /* 图标圆底 */
-      var iconR = 16, iconCx = btnX + 34, iconCy = y + btnH / 2;
-      var ig = ctx.createRadialGradient(iconCx - 4, iconCy - 4, 2, iconCx, iconCy, iconR);
-      ig.addColorStop(0, it.color + '35'); ig.addColorStop(1, it.color + '10');
-      ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.fill();
-      ctx.save(); ctx.strokeStyle = it.color; ctx.globalAlpha = isSelected ? 0.7 : 0.35;
-      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.restore();
-
-      var iconImg = Assets.get(it.icon);
-      if (iconImg) {
-        ctx.save(); ctx.globalAlpha = isSelected ? 1 : 0.65;
-        ctx.drawImage(iconImg, iconCx - 12, iconCy - 12, 24, 24);
-        ctx.globalAlpha = 1; ctx.restore();
-      } else {
-        ctx.fillStyle = it.color; ctx.globalAlpha = isSelected ? 1 : 0.6;
-        ctx.beginPath(); ctx.arc(iconCx, iconCy, 9, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-      }
-
-      /* 文字 */
-      var tCol = isSelected ? '#ffe066' : isHover ? '#e0e8ff' : '#a8b4d0';
-      var dCol = isSelected ? 'rgba(255,248,208,0.8)' : 'rgba(120,135,180,0.75)';
-      this.drawOutlinedText(it.title, btnX + 60, iconCy - 7, Math.round(Math.min(CW * 0.018, 24)), tCol, 'left');
-      this.drawOutlinedText(it.desc, btnX + 60, iconCy + 11, Math.round(Math.min(CW * 0.01, 13)), dCol, 'left');
     }.bind(this));
 
-    /* ===== 底部按键提示 ===== */
-    var keycapImg = Assets.get('ui/keycap');
+    /* ===== 左侧内容列（垂直居中） ===== */
+    var mx = Math.max(40 * S, CW * 0.055);
+    var titleH = 150 * S;
+    var cardW = Math.min(CW * 0.30, 360 * S);
+    var cardH = 66 * S, gap = 14 * S;
+    var listGap = 34 * S;
+    var contentH = titleH + listGap + 4 * cardH + 3 * gap;
+    var startY = Math.max(40 * S, (CH - contentH) / 2);
+
+    /* --- 标题 --- */
+    var tSz = Math.round(84 * S);
+    var ty2 = startY;
+    ctx.save();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    // 柔和底光
+    var tgl = ctx.createRadialGradient(mx + tSz * 1.4, ty2 + tSz * 0.5, 10, mx + tSz * 1.4, ty2 + tSz * 0.5, tSz * 2.6);
+    tgl.addColorStop(0, 'rgba(255,180,90,0.14)'); tgl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tgl; ctx.fillRect(mx - 60 * S, ty2 - 40 * S, tSz * 4.4, tSz * 2.2);
+    // 眉题
+    ctx.font = 'bold ' + Math.round(15 * S) + 'px "Arial", sans-serif';
+    ctx.fillStyle = 'rgba(255,214,110,0.75)';
+    ctx.fillText('B U B B L E   B L A S T', mx + 4, ty2 - 30 * S);
+    // 主标题：双色渐变 + 柔光
+    ctx.font = '900 ' + tSz + 'px "Microsoft YaHei", sans-serif';
+    var drawTitle = function(txt, x, cLight, cDark, glow) {
+      var gr = ctx.createLinearGradient(0, ty2, 0, ty2 + tSz);
+      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, cLight); gr.addColorStop(1, cDark);
+      ctx.save();
+      ctx.shadowColor = glow; ctx.shadowBlur = 26 * S;
+      ctx.fillStyle = gr;
+      ctx.fillText(txt, x, ty2 + Math.sin(t * 1.5) * 3 * S);
+      ctx.restore();
+      return ctx.measureText(txt).width;
+    };
+    var w1 = drawTitle('泡泡', mx, '#6fb6ff', '#1f6fd0', 'rgba(60,140,255,0.55)');
+    drawTitle('爆破', mx + w1, '#ff8fc4', '#d63d8f', 'rgba(255,90,170,0.55)');
+    ctx.restore();
+    // 金色小下划线
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillRect(mx + 2, ty2 + tSz + 10 * S, 56 * S, 4 * S);
+
+    /* --- 模式卡片 --- */
+    var items = [
+      { title: '单人闯关', desc: '挑战 AI 敌人 · 关卡无限', color: '#4f9fff', icon: ITEM_BOMB },
+      { title: '双人对战', desc: '同屏 1v1 · 先胜三回合', color: '#ff6b6b', icon: ITEM_FIRE },
+      { title: '道具挑战', desc: '限定道具 · 极致操作', color: '#ffd23d', icon: ITEM_SHIELD },
+      { title: '无尽模式', desc: '越战越勇 · 冲击极限', color: '#4dd06a', icon: ITEM_STORM },
+    ];
+    var listY = startY + titleH + listGap;
+    this.menuRects = [];
+    items.forEach(function(it, i) {
+      var y = listY + i * (cardH + gap);
+      var btnX = mx - 14 * S, btnW = cardW + 28 * S;
+      this.menuRects.push({ x: btnX, y: y, w: btnW, h: cardH });
+      var isSel = this.menuIndex === i, isHov = this.hoverIndex === i;
+
+      // 卡片底
+      ctx.fillStyle = isSel ? 'rgba(30,42,80,0.92)' : isHov ? 'rgba(20,28,56,0.85)' : 'rgba(15,21,44,0.72)';
+      this.roundRect(btnX, y, btnW, cardH, 14 * S); ctx.fill();
+      // 边框
+      if (isSel) {
+        ctx.save();
+        ctx.shadowColor = it.color; ctx.shadowBlur = 20 * S;
+        ctx.strokeStyle = it.color; ctx.lineWidth = 2.5 * S;
+        this.roundRect(btnX, y, btnW, cardH, 14 * S); ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.strokeStyle = isHov ? it.color + '80' : 'rgba(130,170,255,0.12)';
+        ctx.lineWidth = 1.5 * S;
+        this.roundRect(btnX, y, btnW, cardH, 14 * S); ctx.stroke();
+      }
+      // 左侧强调条
+      ctx.save();
+      if (isSel || isHov) { ctx.shadowColor = it.color; ctx.shadowBlur = 12 * S; }
+      ctx.fillStyle = it.color;
+      ctx.globalAlpha = isSel ? 1 : isHov ? 0.8 : 0.45;
+      this.roundRect(btnX + 2 * S, y + 9 * S, 4.5 * S, cardH - 18 * S, 2.5 * S); ctx.fill();
+      ctx.globalAlpha = 1; ctx.restore();
+
+      // 图标徽章（复用游戏内道具图标，美术统一）
+      var icX = btnX + 40 * S, icY = y + cardH / 2, icR = 21 * S;
+      var ig = ctx.createRadialGradient(icX - 5 * S, icY - 5 * S, 2, icX, icY, icR);
+      ig.addColorStop(0, it.color + '55'); ig.addColorStop(1, it.color + '14');
+      ctx.fillStyle = ig;
+      ctx.beginPath(); ctx.arc(icX, icY, icR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = it.color; ctx.globalAlpha = isSel ? 0.85 : 0.4; ctx.lineWidth = 1.5 * S;
+      ctx.beginPath(); ctx.arc(icX, icY, icR, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+      this.drawItemIcon(it.icon, icX, icY);
+
+      // 文案
+      var tCol = isSel ? '#ffe066' : isHov ? '#e6ecff' : '#aab6d6';
+      var dCol = isSel ? 'rgba(255,240,190,0.85)' : 'rgba(130,145,190,0.8)';
+      this.drawOutlinedText(it.title, btnX + 76 * S, y + cardH * 0.32, Math.round(21 * S), tCol, 'left');
+      this.drawOutlinedText(it.desc, btnX + 76 * S, y + cardH * 0.71, Math.round(12.5 * S), dCol, 'left');
+
+      // 选中箭头
+      if (isSel) {
+        var ax = btnX - 26 * S + Math.sin(t * 6) * 3 * S;
+        ctx.fillStyle = it.color;
+        ctx.beginPath();
+        ctx.moveTo(ax, icY - 7 * S); ctx.lineTo(ax + 11 * S, icY); ctx.lineTo(ax, icY + 7 * S);
+        ctx.closePath(); ctx.fill();
+      }
+    }.bind(this));
+
+    /* ===== 底部按键提示 & 版本 ===== */
     var segs = [
       { caps: ['↑', '↓'], label: '选择' },
       { caps: ['Enter'], label: '确认' },
       { caps: ['V'], label: '全屏' },
       { caps: ['M'], label: '音效' },
     ];
-    var fx = mx, ky = CH - 28;
-    ctx.font = '12px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    var fx = mx, ky = CH - 30 * S;
     segs.forEach(function(s) {
       var x = fx;
-      s.caps.forEach(function(c) {
-        if (keycapImg) { ctx.drawImage(keycapImg, x + 3, ky - 10, 20, 20); }
-        else { this.drawKeycap(x + 12, ky, c); }
-        x += 26;
-      }.bind(this));
-      ctx.fillStyle = 'rgba(140,155,195,0.45)';
-      ctx.fillText(s.label, x + 5, ky + 1);
-      fx = x + 5 + ctx.measureText(s.label).width + 18;
+      s.caps.forEach(function(c) { this.drawKeycap(x + 13 * S, ky, c, 26 * S); x += 30 * S; }.bind(this));
+      ctx.fillStyle = 'rgba(150,165,205,0.5)';
+      ctx.font = 12 * S + 'px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.label, x + 8 * S, ky + 1);
+      fx = x + 8 * S + ctx.measureText(s.label).width + 22 * S;
     }.bind(this));
-
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
     ctx.font = '11px monospace';
-    ctx.fillText('Version 1.0.0', 10, CH - 10);
+    ctx.textAlign = 'right';
+    ctx.fillText('v1.0.0', CW - 14, CH - 14);
 
-    /* 暗角 */
-    var vg = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.35, CW / 2, CH / 2, Math.max(CW, CH) * 0.75);
-    vg.addColorStop(0, 'rgba(5,8,20,0)'); vg.addColorStop(0.6, 'rgba(5,8,20,0.12)'); vg.addColorStop(1, 'rgba(5,8,20,0.4)');
+    /* ===== 暗角 ===== */
+    var vg = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.38, CW / 2, CH / 2, Math.max(CW, CH) * 0.75);
+    vg.addColorStop(0, 'rgba(5,8,20,0)'); vg.addColorStop(1, 'rgba(5,8,20,0.45)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, CW, CH);
 
     ctx.restore();
@@ -2083,7 +2070,7 @@ function loop(now) {
   last = now;
   const cwNow = document.documentElement.clientWidth, chNow = document.documentElement.clientHeight;
   if (cwNow !== lastWinW || chNow !== lastWinH) {
-    lastWinW = innerWidth; lastWinH = innerHeight;
+    lastWinW = cwNow; lastWinH = chNow;
     fitCanvas();
     Game.onResize();
   }
