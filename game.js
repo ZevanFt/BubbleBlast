@@ -63,14 +63,18 @@ async function initAssets() {
     console.warn('[Assets] init failed or timeout:', e);
   }
   assetsReady = true;
-  // 立即移除加载屏
+  // 立即移除加载屏并显示 DOM 主菜单
   if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+  MenuUI.init();
+  MenuUI.show();
 }
 initAssets();
 // 兜底：6秒后无论如何移除加载屏
 setTimeout(function() {
   var l = document.getElementById('loader');
   if (l && l.parentNode) l.parentNode.removeChild(l);
+  MenuUI.init();
+  MenuUI.show();
 }, 6500);
 
 /* ---------- 自适应缩放 & 全屏 ---------- */
@@ -186,6 +190,32 @@ const Sfx = {
   confirm() { this.tone(523, 0.09, 'square', 0.1); setTimeout(() => this.tone(784, 0.12, 'square', 0.1), 80); },
   win()     { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'square', 0.12), i * 120)); },
   lose()    { [392, 330, 262, 196].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, 'sawtooth', 0.12), i * 160)); },
+};
+
+/* ---------- DOM 主菜单控制器 ---------- */
+const MenuUI = {
+  el: null, items: [],
+  init() {
+    this.el = document.getElementById('menu');
+    if (!this.el) return;
+    this.items = [...this.el.querySelectorAll('.m-item')];
+    this.items.forEach((el, i) => {
+      el.addEventListener('mouseenter', () => {
+        if (Game.state !== 'menu' || Game.menuIndex === i) return;
+        Game.menuIndex = i; Sfx.move(); this.sync();
+      });
+      el.addEventListener('click', () => {
+        if (Game.state !== 'menu') return;
+        Game.menuIndex = i; this.sync(); Game.confirmMenu();
+      });
+    });
+    this.sync();
+  },
+  sync() {
+    this.items.forEach((el, i) => el.classList.toggle('sel', i === Game.menuIndex));
+  },
+  show() { if (this.el) { this.el.classList.remove('hidden'); this.sync(); } },
+  hide() { if (this.el) this.el.classList.add('hidden'); },
 };
 
 /* ---------- 输入 ---------- */
@@ -470,8 +500,8 @@ const Game = {
     if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
     if (this.state === 'menu') {
       const n = 4;
-      if (k === 'ArrowUp' || k === 'w' || k === 'W') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); }
-      else if (k === 'ArrowDown' || k === 's' || k === 'S') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); }
+      if (k === 'ArrowUp' || k === 'w' || k === 'W') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
+      else if (k === 'ArrowDown' || k === 's' || k === 'S') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
       else if (k === 'Enter' || k === ' ') this.confirmMenu();
       else if (k === '1') { this.menuIndex = 0; this.confirmMenu(); }
       else if (k === '2') { this.menuIndex = 1; this.confirmMenu(); }
@@ -487,14 +517,14 @@ const Game = {
     if (this.state === 'over') {
       if (k !== 'Enter' && k !== ' ') return;
       if (this.mode === 'versus') this.nextRound();
-      else { this.hidden = []; this.state = 'menu'; }
+      else this.gotoMenu();
       return;
     }
     if (this.state === 'win') {
       if (k !== 'Enter' && k !== ' ') return;
       if (this.mode === 'single') this.nextLevel();
       else if (this.mode === 'endless') { this.state = 'play'; this.showMsg(`第 ${this.level} 波 · 准备！`); }
-      else { this.hidden = []; this.state = 'menu'; }
+      else this.gotoMenu();
       return;
     }
     if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
@@ -502,12 +532,18 @@ const Game = {
 
   confirmMenu() {
     Sfx.confirm();
+    MenuUI.hide();
     const modes = ['single', 'versus', 'item-challenge', 'endless'];
     const mode = modes[this.menuIndex];
-    if (mode === 'single') this.reset('single');
-    else if (mode === 'versus') this.reset('versus');
-    else if (mode === 'item-challenge') this.reset('item-challenge');
-    else if (mode === 'endless') this.reset('endless');
+    this.reset(mode);
+  },
+
+  // 回到主菜单（显示 DOM 菜单层）
+  gotoMenu() {
+    this.hidden = [];
+    this.state = 'menu';
+    this.enemies = [];
+    MenuUI.show();
   },
 
   /* ---------- 泡泡 ---------- */
@@ -1059,7 +1095,7 @@ const Game = {
       ctx.translate(rand(-1, 1) * this.shakeT * 14, rand(-1, 1) * this.shakeT * 14);
     }
 
-    if (this.state === 'menu') { this.drawMenu(); ctx.restore(); return; }
+    if (this.state === 'menu') { this.drawMenuBg(); ctx.restore(); return; }
 
     // 地块
     for (let y = 0; y < ROWS; y++)
@@ -1820,6 +1856,16 @@ const Game = {
     ctx.restore();
 
     ctx.restore();
+  },
+
+  // 菜单已由 DOM 层渲染，canvas 只需铺底色（DOM 菜单背景为半透明渐变时透出）
+  drawMenuBg() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const CW = cvs.width, CH = cvs.height;
+    const bg = ctx.createLinearGradient(0, 0, 0, CH);
+    bg.addColorStop(0, '#0e1334'); bg.addColorStop(1, '#0a0e24');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, CW, CH);
   },
 
   drawMenu() {

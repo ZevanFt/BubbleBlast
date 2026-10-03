@@ -327,7 +327,211 @@
     pointer-events: none; z-index: 5;
   }
 
+  /* ========== 主菜单（DOM） ========== */
+  #menu {
+    position: absolute; inset: 0; z-index: 6;
+    overflow: hidden;
+    background:
+      radial-gradient(1100px 750px at 74% 26%, rgba(104,64,190,0.28) 0%, transparent 62%),
+      radial-gradient(950px 700px at 12% 82%, rgba(28,86,190,0.30) 0%, transparent 62%),
+      linear-gradient(158deg, #0e1334 0%, #0a0e24 52%, #0c1132 100%);
+    transition: opacity 0.45s ease, visibility 0.45s;
+  }
+  #menu.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  /* 漂移光斑 */
+  .mblob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .38; pointer-events: none; }
+  .mb1 { width: 560px; height: 560px; right: -140px; top: -160px;
+    background: radial-gradient(circle, #7a4dd0 0%, transparent 68%);
+    animation: mdrift 19s ease-in-out infinite alternate; }
+  .mb2 { width: 500px; height: 500px; left: -180px; bottom: -200px;
+    background: radial-gradient(circle, #2a6ad0 0%, transparent 68%);
+    animation: mdrift 24s ease-in-out infinite alternate-reverse; }
+  @keyframes mdrift { from { transform: translate(0,0) scale(1); } to { transform: translate(46px,-34px) scale(1.14); } }
+
+  /* 稀疏星点 */
+  .mstars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #cfe0ff; opacity: .35; animation: mtw 3.2s ease-in-out infinite; }
+  .mstars i:nth-child(1){left:18%;top:14%} .mstars i:nth-child(2){left:64%;top:8%;animation-delay:.7s}
+  .mstars i:nth-child(3){left:84%;top:38%;animation-delay:1.3s} .mstars i:nth-child(4){left:8%;top:46%;animation-delay:2s}
+  .mstars i:nth-child(5){left:44%;top:24%;animation-delay:.4s} .mstars i:nth-child(6){left:70%;top:70%;animation-delay:1.7s}
+  .mstars i:nth-child(7){left:30%;top:82%;animation-delay:1s} .mstars i:nth-child(8){left:52%;top:56%;animation-delay:2.4s}
+  @keyframes mtw { 0%,100%{opacity:.12} 50%{opacity:.6} }
+
+  /* 缓升小泡泡 */
+  .mrise { position: absolute; bottom: -60px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 34% 30%, rgba(160,200,255,.34), rgba(120,160,255,.05) 62%, transparent 72%);
+    border: 1.5px solid rgba(170,200,255,.22);
+    animation: mrise linear infinite; }
+  .mr1 { width: 26px; height: 26px; left: 12%; animation-duration: 13s; }
+  .mr2 { width: 14px; height: 14px; left: 30%; animation-duration: 17s; animation-delay: 3s; }
+  .mr3 { width: 38px; height: 38px; left: 55%; animation-duration: 15s; animation-delay: 6s; }
+  .mr4 { width: 18px; height: 18px; left: 78%; animation-duration: 11s; animation-delay: 1.6s; }
+  .mr5 { width: 30px; height: 30px; left: 90%; animation-duration: 19s; animation-delay: 8s; }
+  @keyframes mrise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .7; } 88% { opacity: .5; } 100% { transform: translateY(-110vh); opacity: 0; } }
+
+  .menu-inner {
+    position: relative; z-index: 2;
+    box-sizing: border-box;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 7vw; gap: 4vw;
+  }
+
+  /* ---- 左列：LOGO + 菜单 ---- */
+  .menu-left { max-width: 600px; }
+
+  .m-eyebrow {
+    font-size: 13px; font-weight: 700; letter-spacing: .38em;
+    color: #8fa3d8; margin-bottom: 16px;
+  }
+  .m-logo {
+    font-family: "Arial Black", "Segoe UI Black", "Microsoft YaHei", sans-serif;
+    font-weight: 900; font-size: clamp(58px, 8.4vw, 112px);
+    line-height: .96; letter-spacing: 1px;
+    animation: mfloat 5s ease-in-out infinite;
+  }
+  .m-logo span { display: block; }
+  .m-logo .l1 {
+    background: linear-gradient(180deg, #ffffff 8%, #a8d4ff 52%, #3f95f5 96%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 5px 0 rgba(18,58,138,.65)) drop-shadow(0 0 28px rgba(80,160,255,.35));
+  }
+  .m-logo .l2 {
+    background: linear-gradient(180deg, #ffffff 8%, #ffa5cd 52%, #ff4f9e 96%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 5px 0 rgba(150,30,90,.6)) drop-shadow(0 0 28px rgba(255,100,170,.32));
+  }
+  @keyframes mfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+  .m-tagline {
+    margin-top: 18px; font-size: 14px; letter-spacing: .22em;
+    color: #7f8db8; font-weight: 600;
+  }
+  .m-tagline b { color: #c3cff0; }
+
+  .m-list { margin-top: 40px; display: flex; flex-direction: column; gap: 13px; }
+  .m-item {
+    --c: #4f9fff; --cg: rgba(79,159,255,.4);
+    display: flex; align-items: center; gap: 18px;
+    padding: 13px 20px; border-radius: 16px;
+    border: 1.5px solid rgba(140,170,255,.14);
+    background: rgba(15,23,50,.55);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    cursor: pointer; user-select: none;
+    transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    position: relative;
+  }
+  .m-item:hover { background: rgba(24,34,68,.72); transform: translateX(5px); }
+  .m-item.sel {
+    background: rgba(30,44,88,.8);
+    border-color: var(--c);
+    box-shadow: 0 0 26px var(--cg), inset 0 0 20px rgba(255,255,255,.03);
+    transform: translateX(10px);
+  }
+  .m-item.sel::after {
+    content: ''; position: absolute; left: -17px; top: 50%; margin-top: -7px;
+    border: 8px solid transparent; border-left: 11px solid var(--c);
+    animation: nudge 1s ease-in-out infinite;
+  }
+  @keyframes nudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+  .m-item .badge {
+    flex: none; width: 52px; height: 52px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: radial-gradient(circle at 32% 28%, var(--cg) 0%, var(--c) 58%, var(--c-dark, #123) 100%);
+    box-shadow: inset 0 -5px 9px rgba(0,0,0,.3), inset 0 4px 7px rgba(255,255,255,.4), 0 5px 16px var(--cg);
+  }
+  .m-item .badge svg { width: 27px; height: 27px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+  .m-item .tx .t { font-size: 21px; font-weight: 800; color: #edf2ff; letter-spacing: 1px; }
+  .m-item .tx .d { font-size: 13px; color: #8d9bc4; margin-top: 3px; letter-spacing: .5px; }
+  .m-item.sel .tx .t { color: #ffe066; }
+  .m-item.sel .tx .d { color: #b9c4e8; }
+
+  .m-hints {
+    position: absolute; left: 7vw; bottom: 30px; z-index: 3;
+    display: flex; align-items: center; gap: 22px;
+    font-size: 12px; color: #7c88b4;
+  }
+  .m-hints .h { display: flex; align-items: center; gap: 8px; }
+  .m-hints kbd {
+    display: inline-grid; place-items: center;
+    min-width: 24px; height: 24px; padding: 0 7px;
+    border-radius: 6px; font-size: 11px; font-family: inherit;
+    color: #cdd6f2;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.2);
+    border-bottom-width: 2.5px;
+  }
+  .m-ver { position: absolute; right: 26px; bottom: 24px; z-index: 3; font-size: 11px; color: rgba(255,255,255,.22); font-family: monospace; }
+
+  /* ---- 右列：mascot 主视觉 ---- */
+  .menu-hero { position: relative; width: 40vw; max-width: 660px; aspect-ratio: 1/1; flex: none; }
+  .orb { position: absolute; border-radius: 50%; aspect-ratio: 1 / 1; }
+  .orb::before {
+    content: ''; position: absolute; left: 16%; top: 10%;
+    width: 36%; height: 26%; border-radius: 50%;
+    background: rgba(255,255,255,.85); filter: blur(7px);
+    transform: rotate(-24deg);
+  }
+  .orb::after {
+    content: ''; position: absolute; left: 20%; right: 20%; bottom: 5%;
+    height: 9%; border-radius: 50%;
+    border-bottom: 4px solid rgba(255,255,255,.45); filter: blur(2px);
+  }
+  .hero-bob { animation: hbob 5.2s ease-in-out infinite; }
+  @keyframes hbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+
+  .orb-main {
+    inset: 6%;
+    background: radial-gradient(circle at 33% 27%, #a6daff 0%, #4a9fff 40%, #1d55b8 78%, #123a8a 100%);
+    box-shadow:
+      inset -18px -26px 56px rgba(2,20,60,.5),
+      inset 12px 16px 38px rgba(255,255,255,.22),
+      0 34px 110px rgba(40,100,255,.38);
+    animation: hbob 5.2s ease-in-out infinite;
+  }
+  .orb-main .face { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .orb-shadow {
+    left: 20%; right: 20%; bottom: -4%; height: 9%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(0,10,40,.55), transparent 70%);
+    filter: blur(8px);
+  }
+
+  .orb-bomb {
+    width: 27%; left: 2%; top: 6%;
+    background: radial-gradient(circle at 34% 28%, #5a6b8c 0%, #26304e 55%, #141b30 100%);
+    box-shadow: inset -8px -12px 26px rgba(0,0,0,.5), inset 6px 8px 18px rgba(255,255,255,.14), 0 14px 44px rgba(10,20,60,.5);
+    animation: hbob 4.6s ease-in-out .8s infinite;
+  }
+  .orb-heart {
+    width: 30%; right: 0%; top: 22%;
+    background: radial-gradient(circle at 33% 27%, #ffb0d0 0%, #f0559c 45%, #b02468 100%);
+    box-shadow: inset -10px -14px 30px rgba(90,10,50,.45), inset 7px 9px 20px rgba(255,255,255,.3), 0 16px 50px rgba(240,85,156,.35);
+    animation: hbob 5.8s ease-in-out .3s infinite;
+  }
+  .orb-star {
+    width: 24%; right: 12%; bottom: 4%;
+    background: radial-gradient(circle at 33% 27%, #ffe08a 0%, #ffb830 48%, #c07708 100%);
+    box-shadow: inset -8px -12px 26px rgba(120,70,0,.4), inset 6px 8px 18px rgba(255,255,255,.35), 0 14px 44px rgba(255,184,48,.3);
+    animation: hbob 5s ease-in-out 1.4s infinite;
+  }
+  .orb-green {
+    width: 19%; left: 14%; bottom: 10%;
+    background: radial-gradient(circle at 33% 27%, #b2efb2 0%, #4dd06a 46%, #1f8a3c 100%);
+    box-shadow: inset -7px -10px 22px rgba(10,80,30,.4), inset 5px 7px 16px rgba(255,255,255,.3), 0 12px 38px rgba(77,208,106,.28);
+    animation: hbob 6s ease-in-out 2s infinite;
+  }
+  .orb .oicon { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  @media (max-width: 1050px) {
+    .menu-hero { display: none; }
+    .menu-inner { justify-content: center; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
+
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
@@ -396,6 +600,82 @@
 </div>
 
 <div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
+
+<div id="menu" class="hidden">
+  <div class="mblob mb1"></div><div class="mblob mb2"></div>
+  <div class="mstars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="mrise mr1"></div><div class="mrise mr2"></div><div class="mrise mr3"></div><div class="mrise mr4"></div><div class="mrise mr5"></div>
+
+  <div class="menu-inner">
+    <div class="menu-left">
+      <div class="m-eyebrow">BUBBLE BLAST</div>
+      <div class="m-logo"><span class="l1">BUBBLE</span><span class="l2">BLAST</span></div>
+      <div class="m-tagline">POP · CHAIN · <b>WIN</b></div>
+
+      <div class="m-list">
+        <div class="m-item sel" style="--c:#4f9fff; --cg:rgba(79,159,255,.45); --c-dark:#173e8f;">
+          <div class="badge">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="14.5" r="7" fill="#1c2333"/><ellipse cx="8.6" cy="12" rx="2.4" ry="1.4" fill="rgba(255,255,255,.55)" transform="rotate(-25 8.6 12)"/><path d="M14 9 Q16.5 5.5 19.5 6.5" stroke="#caa06a" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="19.8" cy="6.4" r="1.7" fill="#ffd23d"/></svg>
+          </div>
+          <div class="tx"><div class="t">单人闯关</div><div class="d">挑战 AI 敌人 · 关卡无限</div></div>
+        </div>
+        <div class="m-item" style="--c:#ff6b6b; --cg:rgba(255,107,107,.42); --c-dark:#8f1f1f;">
+          <div class="badge">
+            <svg viewBox="0 0 24 24"><path d="M12 3 C15 7 17 9 17 13 a5 5 0 1 1 -10 0 C7 9 9 7 12 3 Z" fill="#fff"/><path d="M12 10 C13.4 12 14 13 14 14.6 a2.2 2.2 0 1 1 -4.4 0 C9.6 13 10.6 12 12 10 Z" fill="#ffb060"/></svg>
+          </div>
+          <div class="tx"><div class="t">双人对战</div><div class="d">同屏 1v1 · 先胜三回合</div></div>
+        </div>
+        <div class="m-item" style="--c:#ffd23d; --cg:rgba(255,210,61,.42); --c-dark:#8f6a08;">
+          <div class="badge">
+            <svg viewBox="0 0 24 24"><path d="M12 3 L18.5 5.8 V12 C18.5 16.6 15.8 19.6 12 21 8.2 19.6 5.5 16.6 5.5 12 V5.8 Z" fill="#fff"/><path d="M9 11.6 L11.2 14 L15.2 8.8" stroke="#b8860b" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="tx"><div class="t">道具挑战</div><div class="d">限定道具 · 极致操作</div></div>
+        </div>
+        <div class="m-item" style="--c:#4dd06a; --cg:rgba(77,208,106,.4); --c-dark:#14602c;">
+          <div class="badge">
+            <svg viewBox="0 0 24 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M4.5 8 C9 6 15 6 19.5 8"/><path d="M6.5 12.5 C10 11 14 11 17.5 12.5"/><path d="M9 17 C11 16.2 13 16.2 15 17"/></svg>
+          </div>
+          <div class="tx"><div class="t">无尽模式</div><div class="d">越战越勇 · 冲击极限</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-hero">
+      <div class="orb-shadow hero-bob"></div>
+      <div class="orb orb-bomb hero-bob">
+        <svg class="oicon" viewBox="0 0 100 100"><circle cx="50" cy="58" r="26" fill="#161d33"/><ellipse cx="40" cy="48" rx="8" ry="4.6" fill="rgba(255,255,255,.5)" transform="rotate(-25 40 48)"/><path d="M60 36 Q68 22 80 26" stroke="#caa06a" stroke-width="4.5" fill="none" stroke-linecap="round"/><circle cx="82" cy="26" r="6" fill="#ffd23d"/><circle cx="80" cy="24" r="2.2" fill="#fff"/></svg>
+      </div>
+      <div class="orb orb-main">
+        <svg class="face" viewBox="0 0 120 120">
+          <ellipse cx="44" cy="52" rx="12" ry="14" fill="#fff"/>
+          <ellipse cx="76" cy="52" rx="12" ry="14" fill="#fff"/>
+          <circle cx="46" cy="56" r="6" fill="#1e2430"/>
+          <circle cx="78" cy="56" r="6" fill="#1e2430"/>
+          <circle cx="43.5" cy="50" r="2.4" fill="#fff"/>
+          <circle cx="75.5" cy="50" r="2.4" fill="#fff"/>
+          <ellipse cx="27" cy="68" rx="7" ry="4.5" fill="rgba(255,120,150,.65)"/>
+          <ellipse cx="93" cy="68" rx="7" ry="4.5" fill="rgba(255,120,150,.65)"/>
+          <path d="M49 74 Q60 85 71 74" stroke="#1e2430" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="orb orb-heart hero-bob">
+        <svg class="oicon" viewBox="0 0 100 100"><path d="M50 78 C20 58 26 34 42 34 C48 34 50 38 50 42 C50 38 52 34 58 34 C74 34 80 58 50 78 Z" fill="#fff"/></svg>
+      </div>
+      <div class="orb orb-star hero-bob">
+        <svg class="oicon" viewBox="0 0 100 100"><path d="M50 22 L59 43 L82 45 L64 60 L70 83 L50 70 L30 83 L36 60 L18 45 L41 43 Z" fill="#fff"/></svg>
+      </div>
+      <div class="orb orb-green hero-bob"></div>
+    </div>
+  </div>
+
+  <div class="m-hints">
+    <span class="h"><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+    <span class="h"><kbd>Enter</kbd> 确认</span>
+    <span class="h"><kbd>V</kbd> 全屏</span>
+    <span class="h"><kbd>M</kbd> 音效</span>
+  </div>
+  <div class="m-ver">v1.0.0</div>
+</div>
 
 <script src="asset-loader.js"></script>
 <script src="game.js"></script>
