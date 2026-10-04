@@ -307,6 +307,7 @@ function genMap(mode) {
       }
     }
   }
+  if (typeof Game !== 'undefined') { Game._fieldCols = COLS; Game._fieldRows = ROWS; }
   return m;
 }
 
@@ -508,6 +509,8 @@ const Game = {
   // 窗口尺寸变化 → 场地重新生成（保留生命/分数/道具进度）
   onResize() {
     if (!this.map) return;
+    // 网格尺寸没变（普通切窗口/缩放/跨屏）→ 只重绘画面，游戏进度分毫不动
+    if (COLS === this._fieldCols && ROWS === this._fieldRows) return;
     this.hidden = [];
     this.map = genMap(this.mode);
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
@@ -2271,6 +2274,14 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-// 窗口尺寸变化 → 场地比例跟随重建（fitCanvas 内部已重算 COLS/ROWS）
+// 窗口尺寸变化 → 网格变了才重建场地（onResize 内部判断）
 window.addEventListener('resize', () => Game.onResize());
 if (window.visualViewport) window.visualViewport.addEventListener('resize', () => Game.onResize());
+
+// 切走窗口 / 切到别的标签页 → 自动暂停，回来按 P 继续
+window.addEventListener('blur', () => {
+  if (Game.state === 'play') Game.state = 'pause';
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && Game.state === 'play') Game.state = 'pause';
+});
