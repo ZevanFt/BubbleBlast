@@ -1,6 +1,6 @@
 /* ============================================================
  *  BubbleBlast（泡泡堂 Q版复刻）· 纯 Canvas + 原生 JS
- *  玩法：方向键/WASD 移动，空格/F 放泡泡，炸开砖块吃道具
+ *  玩法：方向键+Enter / WASD+空格 移动放泡泡，炸开砖块吃道具
  * ============================================================ */
 'use strict';
 
@@ -367,6 +367,7 @@ const Game = {
   time: 0, msg: '', msgT: 0, shakeT: 0,
   respawnT: 0, roundEndT: 0,
   menuIndex: 0, hoverIndex: -1, menuRects: [],
+  confirmLockT: 0,
 
   reset(mode) {
     this.mode = mode;
@@ -502,11 +503,11 @@ const Game = {
       const n = 4;
       if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'W' || k === 'a' || k === 'A') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
       else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'S' || k === 'd' || k === 'D') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
-      else if (k === 'Enter' || k === ' ') this.confirmMenu();
-      else if (k === '1') { this.menuIndex = 0; this.confirmMenu(); }
-      else if (k === '2') { this.menuIndex = 1; this.confirmMenu(); }
-      else if (k === '3') { this.menuIndex = 2; this.confirmMenu(); }
-      else if (k === '4') { this.menuIndex = 3; this.confirmMenu(); }
+      else if ((k === 'Enter' || k === ' ') && this.confirmLockT <= 0) this.confirmMenu();
+      else if (k === '1' && this.confirmLockT <= 0) { this.menuIndex = 0; this.confirmMenu(); }
+      else if (k === '2' && this.confirmLockT <= 0) { this.menuIndex = 1; this.confirmMenu(); }
+      else if (k === '3' && this.confirmLockT <= 0) { this.menuIndex = 2; this.confirmMenu(); }
+      else if (k === '4' && this.confirmLockT <= 0) { this.menuIndex = 3; this.confirmMenu(); }
       return;
     }
     if (this.state === 'play' || this.state === 'pause') {
@@ -515,13 +516,13 @@ const Game = {
       }
     }
     if (this.state === 'over') {
-      if (k !== 'Enter' && k !== ' ') return;
+      if ((k !== 'Enter' && k !== ' ') || this.confirmLockT > 0) return;
       if (this.mode === 'versus') this.nextRound();
       else this.gotoMenu();
       return;
     }
     if (this.state === 'win') {
-      if (k !== 'Enter' && k !== ' ') return;
+      if ((k !== 'Enter' && k !== ' ') || this.confirmLockT > 0) return;
       if (this.mode === 'single') this.nextLevel();
       else if (this.mode === 'endless') { this.state = 'play'; this.showMsg(`第 ${this.level} 波 · 准备！`); }
       else this.gotoMenu();
@@ -542,6 +543,7 @@ const Game = {
   gotoMenu() {
     this.hidden = [];
     this.state = 'menu';
+    this.confirmLockT = 0.5;
     this.enemies = [];
     MenuUI.show();
   },
@@ -842,6 +844,7 @@ const Game = {
   /* ---------- 更新 ---------- */
   update(dt) {
     this.time += dt;
+    if (this.confirmLockT > 0) this.confirmLockT -= dt;
     if (this.msgT > 0) this.msgT -= dt;
     if (this.shakeT > 0) this.shakeT -= dt;
 
@@ -868,12 +871,13 @@ const Game = {
         let dx = (keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0);
         let dy = (keys['w'] ? -1 : 0) + (keys['s'] ? 1 : 0);
         this.applyMove(p, dx, dy, dt);
-        if (keys['f']) this.placeBomb(p);
+        if (keys[' '] || keys['f']) this.placeBomb(p);
       } else {
         let dx = (keys['ArrowLeft'] ? -1 : 0) + (keys['ArrowRight'] ? 1 : 0);
         let dy = (keys['ArrowUp'] ? -1 : 0) + (keys['ArrowDown'] ? 1 : 0);
         this.applyMove(p, dx, dy, dt);
-        if (keys[' ']) this.placeBomb(p);
+        // 对战中 P1 只用 Enter（空格让给 P2），单人模式空格/Enter 皆可
+        if (this.mode === 'versus' ? keys['Enter'] : (keys['Enter'] || keys[' '])) this.placeBomb(p);
       }
     }
 
@@ -1023,6 +1027,7 @@ const Game = {
             } else {
               p.dead = true;
               this.state = 'over';
+              this.confirmLockT = 0.6;
               Sfx.lose();
             }
           } else {
@@ -1030,6 +1035,7 @@ const Game = {
             const winner = this.players.find(q => q !== p);
             if (winner) winner.score++;
             this.state = 'over';
+            this.confirmLockT = 0.6;
             this.roundEndT = 0;
             if (winner && winner.score >= 3) { this.state = 'win'; Sfx.win(); }
             else Sfx.lose();
@@ -1042,6 +1048,7 @@ const Game = {
     if (this.mode === 'single' && this.enemies.every(e => !e.alive && e.dying <= 0) && this.state === 'play') {
       if (this.players[0].alive) {
         this.state = 'win';
+        this.confirmLockT = 0.6;
         Sfx.win();
       }
     }
@@ -1152,20 +1159,20 @@ const Game = {
       if (this.mode === 'versus') {
         const winner = this.players.find(p => !p.dead);
         const loser = this.players.find(p => p.dead);
-        this.drawOverlay(`${winner.name} 得分！`, `比分 ${this.players[0].score} : ${this.players[1].score}\n按 Enter 进入下一回合`);
+        this.drawOverlay(`${winner.name} 得分！`, `比分 ${this.players[0].score} : ${this.players[1].score}\n按 Enter / 空格 继续`);
       } else {
         const modeName = this.mode === 'endless' ? '无尽模式' : this.mode === 'item-challenge' ? '道具挑战' : '游戏';
-        this.drawOverlay(`${modeName}结束`, `消灭敌人 ${this.players[0].score} 个 · 按 Enter 返回菜单`);
+        this.drawOverlay(`${modeName}结束`, `消灭敌人 ${this.players[0].score} 个 · 按 Enter / 空格 返回菜单`);
       }
     }
     if (this.state === 'win') {
       if (this.mode === 'versus') {
         const w = this.players[0].score >= 3 ? this.players[0] : this.players[1];
-        this.drawOverlay(`${w.name} 获得胜利！🎉`, `比分 ${this.players[0].score} : ${this.players[1].score} · 按 Enter 返回菜单`);
+        this.drawOverlay(`${w.name} 获得胜利！🎉`, `比分 ${this.players[0].score} : ${this.players[1].score} · 按 Enter / 空格 返回菜单`);
       } else if (this.mode === 'endless') {
-        this.drawOverlay(`第 ${this.level} 波 通过！`, '按 Enter 进入下一波 · 越来越难！');
+        this.drawOverlay(`第 ${this.level} 波 通过！`, '按 Enter / 空格 进入下一波 · 越来越难！');
       } else {
-        this.drawOverlay(`第 ${this.level} 关 通过！`, '按 Enter 进入下一关');
+        this.drawOverlay(`第 ${this.level} 关 通过！`, '按 Enter / 空格 进入下一关');
       }
     }
     ctx.restore();

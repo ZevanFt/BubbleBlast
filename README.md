@@ -23,9 +23,9 @@ Everything — characters, bombs, flames, maps and sound effects — is generate
 | Action | P1 | P2 |
 |---|---|---|
 | Move | Arrow keys | `W` `A` `S` `D` |
-| Drop bomb | `Space` | `F` |
+| Drop bomb | `Enter` | `Space` |
 
-Other keys: `1` single player · `2` versus · `P` pause · `M` mute · `V` / double-click fullscreen
+Other keys: `1` single player · `2` versus · `P` pause · `M` mute · `V` / double-click fullscreen · single-player also accepts `Space` to drop
 
 ## 🚀 Quick Start
 
