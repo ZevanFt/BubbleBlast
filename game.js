@@ -27,7 +27,7 @@ function setFieldSize() {
   H = ROWS * TILE + HUD_H;
 }
 
-const EMPTY = 0, STONE = 1, SOFT = 2;
+const EMPTY = 0, STONE = 1, SOFT = 2, ICE = 3;
 const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5, ITEM_PUNCH = 6, ITEM_MIRROR = 7, ITEM_BOOST = 8, ITEM_DOUBLE = 9, ITEM_PIERCE = 10, ITEM_STORM = 11;
 
 /* ---------- 地图主题（按关卡/回合轮换） ---------- */
@@ -186,6 +186,7 @@ const Sfx = {
   pickup()  { this.tone(523, 0.07, 'square', 0.1); setTimeout(() => this.tone(784, 0.1, 'square', 0.1), 70); },
   die()     { this.tone(440, 0.5, 'sawtooth', 0.15, -330); },
   kill()    { this.tone(660, 0.12, 'square', 0.1, -200); },
+  ice()     { this.tone(560, 0.14, 'sine', 0.055, -320); },
   move()    { this.tone(340, 0.05, 'square', 0.06); },
   confirm() { this.tone(523, 0.09, 'square', 0.1); setTimeout(() => this.tone(784, 0.12, 'square', 0.1), 80); },
   win()     { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'square', 0.12), i * 120)); },
@@ -230,8 +231,8 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 /* ---------- 关卡生成 ---------- */
-// 对称式生成：只随机左上半，逐格点对称镜像到右下半 —— 经典炸弹人式工整地图
-// 关卡在 3 种布局原型间轮换：散布 / 短墙段 / 空心围合
+// 6 种布局原型按关卡轮换（点对称生成保证工整），雪原关卡生成冰面滑行区
+const MAP_PATTERNS = 6;
 function genMap(mode) {
   const m = new Array(COLS * ROWS).fill(EMPTY);
   for (let y = 0; y < ROWS; y++)
@@ -248,18 +249,22 @@ function genMap(mode) {
       if (inMap(x + dx, y + dy) && m[idx(x + dx, y + dy)] !== STONE) safe.add(idx(x + dx, y + dy));
   }
 
-  const pattern = (typeof Game !== 'undefined' && Game.level) ? (Game.level - 1) % 3 : 0;
+  const level = (typeof Game !== 'undefined' && Game.level) || 1;
+  const pattern = (level - 1) % MAP_PATTERNS;
   const put = (x, y) => {
     if (!inMap(x, y) || m[idx(x, y)] !== EMPTY || safe.has(idx(x, y))) return;
     m[idx(x, y)] = SOFT;
     m[idx(COLS - 1 - x, ROWS - 1 - y)] = SOFT;   // 点对称镜像
   };
+  const cxm = (COLS - 1) / 2, cym = (ROWS - 1) / 2;
   const half = Math.floor((COLS - 1) / 2);
+
   for (let y = 1; y < ROWS - 1; y++)
     for (let x = 1; x <= half; x++) {
       if (m[idx(x, y)] !== EMPTY || safe.has(idx(x, y))) continue;
       const r = Math.random();
       if (pattern === 0) {
+        // 散布
         if (r < 0.70) put(x, y);
       } else if (pattern === 1) {
         // 短墙段：水平/垂直 2~3 连
@@ -267,13 +272,41 @@ function genMap(mode) {
           const len = randi(2, 3), horiz = Math.random() < 0.5;
           for (let i = 0; i < len; i++) put(x + (horiz ? i : 0), y + (horiz ? 0 : i));
         }
-      } else {
-        // 3x3 空心围合，或单砖
+      } else if (pattern === 2) {
+        // 空心围合
         if (r < 0.16) {
           for (let i = 0; i < 3; i++) { put(x + i, y); put(x + i, y + 2); put(x, y + i); put(x + 2, y + i); }
         } else if (r < 0.48) put(x, y);
+      } else if (pattern === 3) {
+        // 菱形环廊：曼哈顿距离 4~5 的环 + 稀疏内芯
+        const d = Math.abs(x - cxm) + Math.abs(y - cym);
+        if (d === 4 || d === 5) put(x, y);
+        else if (d === 2 && r < 0.4) put(x, y);
+      } else if (pattern === 4) {
+        // 双金字塔（沙漏）：上下两座三角
+        if (y < cym - 1 && Math.abs(x - cxm) <= (cym - y) * 1.35 && r < 0.85) put(x, y);
+      } else {
+        // 蛇形走廊：偶数行横墙 + 每行一个对称缺口
+        if (y % 2 === 0 && y >= 2 && y <= ROWS - 3) {
+          const gap = 2 + Math.floor(Math.random() * Math.max(1, half - 2));
+          if (x !== gap && x !== COLS - 1 - gap) put(x, y);
+        } else if (r < 0.35) put(x, y);
       }
     }
+
+  // 雪原主题：生成 2~4 片冰面滑行区（随机游走铺冰）
+  const thIdx = ((mode === 'versus' ? Game.round : level) - 1) % THEMES.length;
+  if (THEMES[thIdx] && THEMES[thIdx].deco === 'snow') {
+    const seeds = 2 + randi(0, 2);
+    for (let s = 0; s < seeds; s++) {
+      let sx = randi(3, COLS - 4), sy = randi(3, ROWS - 4);
+      for (let step = 0; step < 14; step++) {
+        if (m[idx(sx, sy)] === EMPTY && !safe.has(idx(sx, sy))) m[idx(sx, sy)] = ICE;
+        if (Math.random() < 0.5) sx = clamp(sx + randi(-1, 1), 2, COLS - 3);
+        else sy = clamp(sy + randi(-1, 1), 2, ROWS - 3);
+      }
+    }
+  }
   return m;
 }
 
@@ -372,11 +405,11 @@ const Game = {
   reset(mode) {
     this.mode = mode;
     this.hidden = [];
+    this.level = 1; this.round = 1;
     this.map = genMap(mode);
     this.theme = THEMES[0];
     this.bombs = []; this.flames = []; this.items = []; this.particles = [];
     this.enemies = [];
-    this.level = 1; this.round = 1;
     const p1 = makePlayer(1, 1, '#4f8fdc', 'P1');
     p1.lives = 3;
     this.players = [p1];
@@ -422,7 +455,7 @@ const Game = {
     p.punchTimer = 0; p.mirrorTimer = 0; p.boostTimer = 0; p.stormTimer = 0;
     this.spawnEnemies();
     this.state = 'play';
-    this.showMsg(`第 ${this.level} 关 · 开始！`);
+    this.showMsg(`第 ${this.level} 关 · ${this.theme.name}` + (this.theme.deco === 'snow' ? ' · 冰面会滑！' : ''));
   },
 
   nextRound() {
@@ -443,7 +476,7 @@ const Game = {
     });
     this.spawnItemsForVersus();
     this.state = 'play';
-    this.showMsg(`第 ${this.round} 回合 · 开始！`);
+    this.showMsg(`第 ${this.round} 回合 · ${this.theme.name}` + (this.theme.deco === 'snow' ? ' · 冰面会滑！' : ''));
   },
 
   spawnEnemies() {
@@ -592,10 +625,11 @@ const Game = {
     }
   },
 
-  // 泡泡能否滑进目标格
+  // 泡泡能否滑进目标格（冰面也可滑行）
   canSlideTo(b, nx, ny) {
     if (!inMap(nx, ny)) return false;
-    if (this.map[idx(nx, ny)] !== EMPTY) return false;
+    const t = this.map[idx(nx, ny)];
+    if (t !== EMPTY && t !== ICE) return false;
     if (this.bombs.some(o => o !== b && o.tx === nx && o.ty === ny)) return false;
     if ([...this.players, ...this.enemies].some(e => e.alive && e.tx === nx && e.ty === ny)) return false;
     return true;
@@ -868,16 +902,30 @@ const Game = {
       if (!p.alive) continue;
       p.anim += dt;
       if (this.mode === 'versus' && p === this.players[1]) {
-        let dx = (keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0);
-        let dy = (keys['w'] ? -1 : 0) + (keys['s'] ? 1 : 0);
-        this.applyMove(p, dx, dy, dt);
-        if (keys[' '] || keys['f']) this.placeBomb(p);
+        const throwKey = keys[' '] || keys['f'];
+        if (p.slide) {
+          this.slideMove(p, dt);
+          if (throwKey) this.placeBomb(p);
+        } else {
+          let dx = (keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0);
+          let dy = (keys['w'] ? -1 : 0) + (keys['s'] ? 1 : 0);
+          this.applyMove(p, dx, dy, dt);
+          this.tryStartSlide(p);
+          if (throwKey) this.placeBomb(p);
+        }
       } else {
-        let dx = (keys['ArrowLeft'] ? -1 : 0) + (keys['ArrowRight'] ? 1 : 0);
-        let dy = (keys['ArrowUp'] ? -1 : 0) + (keys['ArrowDown'] ? 1 : 0);
-        this.applyMove(p, dx, dy, dt);
-        // 对战中 P1 只用 Enter（空格让给 P2），单人模式空格/Enter 皆可
-        if (this.mode === 'versus' ? keys['Enter'] : (keys['Enter'] || keys[' '])) this.placeBomb(p);
+        const throwKey = this.mode === 'versus' ? keys['Enter'] : (keys['Enter'] || keys[' ']);
+        if (p.slide) {
+          this.slideMove(p, dt);
+          if (throwKey) this.placeBomb(p);
+        } else {
+          let dx = (keys['ArrowLeft'] ? -1 : 0) + (keys['ArrowRight'] ? 1 : 0);
+          let dy = (keys['ArrowUp'] ? -1 : 0) + (keys['ArrowDown'] ? 1 : 0);
+          this.applyMove(p, dx, dy, dt);
+          this.tryStartSlide(p);
+          // 对战中 P1 只用 Enter（空格让给 P2），单人模式空格/Enter 皆可
+          if (throwKey) this.placeBomb(p);
+        }
       }
     }
 
@@ -1067,6 +1115,7 @@ const Game = {
     if (dx !== 0 && dy !== 0) { // 斜向时只保留水平（泡泡堂是四方向）
       dy = 0;
     }
+    p.lastDir = { x: dx, y: dy };
     if (dx !== 0) {
       p.face.x = dx; p.face.y = 0;
       // 垂直方向自动对齐格子中线（走位手感）
@@ -1082,6 +1131,56 @@ const Game = {
       this.moveEntity(p, 0, dy * p.speed * dt, dt);
     }
     p.moving = true;
+  },
+
+  /* ---- 冰面滑行（雪原关卡）----
+   * 踩上冰面会沿当前方向滑行，直到滑出冰面或被障碍挡住；
+   * 滑行中无法转向，但可以放泡泡（滑狙战术） */
+  tryStartSlide(p) {
+    if (!p.moving || !p.lastDir) return;
+    if (this.map[idx(p.tx, p.ty)] !== ICE) return;
+    const nx = p.tx + p.lastDir.x, ny = p.ty + p.lastDir.y;
+    if (this.solidFor(p, nx, ny)) return;
+    p.slide = { x: p.lastDir.x, y: p.lastDir.y };
+    p.slideTarget = { tx: nx, ty: ny };
+    Sfx.ice();
+  },
+
+  slideMove(p, dt) {
+    const t = p.slideTarget;
+    if (!t) { p.slide = null; return; }
+    const sp = p.speed * 1.15;
+    const gx = cx(t.tx), gy = cy(t.ty);
+    const ddx = gx - p.x, ddy = gy - p.y;
+    const dist = Math.hypot(ddx, ddy);
+    const step = sp * dt;
+    p.face.x = p.slide.x; p.face.y = p.slide.y;
+    p.moving = true;
+    // 冰屑粒子
+    if (Math.random() < 0.6) {
+      this.particles.push({
+        x: p.x + rand(-9, 9), y: p.y + 15,
+        vx: rand(-24, 24), vy: rand(-36, -8),
+        life: 0.35, size: rand(1.5, 3), color: 'rgba(225,246,255,.9)',
+      });
+    }
+    if (dist <= step) {
+      p.x = gx; p.y = gy;
+      p.tx = t.tx; p.ty = t.ty;
+      // 判定：还在冰上且前方可走 → 继续滑；否则停
+      const curIce = this.map[idx(p.tx, p.ty)] === ICE;
+      const nx = p.tx + p.slide.x, ny = p.ty + p.slide.y;
+      if (curIce && !this.solidFor(p, nx, ny)) {
+        p.slideTarget = { tx: nx, ty: ny };
+      } else {
+        p.slide = null; p.slideTarget = null;
+      }
+    } else {
+      p.x += ddx / dist * step;
+      p.y += ddy / dist * step;
+      p.tx = clamp(Math.floor(p.x / TILE), 0, COLS - 1);
+      p.ty = clamp(Math.floor((p.y - HUD_H) / TILE), 0, ROWS - 1);
+    }
   },
 
   /* ---------- 渲染 ---------- */
@@ -1111,6 +1210,7 @@ const Game = {
         const t = this.map[idx(x, y)];
         if (t === STONE) this.drawStone(x, y);
         else if (t === SOFT) this.drawSoft(x, y);
+        else if (t === ICE) this.drawIce(x, y);
       }
 
     // 道具
@@ -1253,6 +1353,43 @@ const Game = {
         ctx.beginPath(); ctx.arc(nx2, ny2, 1.7, 0, Math.PI * 2); ctx.fill();
       }
     }
+  },
+
+  // 冰面：玻璃质感 + 斜向光泽 + 裂纹 + 闪星（踩上会滑）
+  drawIce(x, y) {
+    const px = x * TILE, py = HUD_H + y * TILE;
+    const h = this.cellHash(x, y);
+    ctx.fillStyle = (x + y) % 2 ? '#cdeaf9' : '#c0e2f6';
+    ctx.fillRect(px, py, TILE, TILE);
+    // 斜向光泽带
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.beginPath();
+    ctx.moveTo(px + 5, py + TILE - 8);
+    ctx.lineTo(px + TILE - 15, py + 5);
+    ctx.lineTo(px + TILE - 4, py + 5);
+    ctx.lineTo(px + 17, py + TILE - 8);
+    ctx.closePath(); ctx.fill();
+    // 裂纹
+    ctx.strokeStyle = 'rgba(110,175,215,.55)';
+    ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(px + 9 + h * 10, py + TILE - 11);
+    ctx.lineTo(px + 20 + h * 8, py + TILE / 2);
+    ctx.lineTo(px + 15 + h * 10, py + 11);
+    ctx.stroke();
+    // 闪星
+    if (h > 0.55) {
+      const sx2 = px + TILE * (0.28 + (h - 0.55) * 0.9), sy2 = py + TILE * 0.3;
+      ctx.strokeStyle = 'rgba(255,255,255,.95)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sx2 - 4.5, sy2); ctx.lineTo(sx2 + 4.5, sy2);
+      ctx.moveTo(sx2, sy2 - 4.5); ctx.lineTo(sx2, sy2 + 4.5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(96,160,205,.45)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px + 1, py + 1, TILE - 2, TILE - 2);
   },
 
   drawStone(x, y) {
