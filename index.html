@@ -37,8 +37,6 @@
     transition: opacity 0.8s ease, visibility 0.8s;
   }
   #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-
-  /* 深空背景 + 星云 */
   .loader-bg {
     position: absolute; inset: 0;
     background:
@@ -47,158 +45,6 @@
       radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255,180,60,0.06) 0%, transparent 50%),
       linear-gradient(180deg, #0d1128 0%, #0a0e1a 50%, #0d1128 100%);
   }
-
-  /* 星光粒子层 */
-  .stars { position: absolute; inset: 0; pointer-events: none; }
-  .star {
-    position: absolute; border-radius: 50%;
-    animation: twinkle 2.5s ease-in-out infinite;
-  }
-  .star:nth-child(1)  { width:3px;height:3px;top:8%;left:12%;background:#ffe066;animation-delay:0s; }
-  .star:nth-child(2)  { width:2px;height:2px;top:15%;left:78%;background:#7ea8ff;animation-delay:0.5s; }
-  .star:nth-child(3)  { width:4px;height:4px;top:42%;left:5%;background:#ffe066;animation-delay:1.2s; }
-  .star:nth-child(4)  { width:2px;height:2px;top:68%;left:88%;background:#ff6b8a;animation-delay:0.3s; }
-  .star:nth-child(5)  { width:3px;height:3px;top:82%;left:25%;background:#7ea8ff;animation-delay:1.8s; }
-  .star:nth-child(6)  { width:2px;height:2px;top:30%;left:92%;background:#ffe066;animation-delay:0.8s; }
-  .star:nth-child(7)  { width:3px;height:3px;top:55%;left:45%;background:#3fa65b;animation-delay:2s; }
-  .star:nth-child(8)  { width:2px;height:2px;top:12%;left:55%;background:#ff6b8a;animation-delay:1.5s; }
-  .star:nth-child(9)  { width:4px;height:4px;top:75%;left:60%;background:#ffe066;animation-delay:0.2s; }
-  .star:nth-child(10) { width:2px;height:2px;top:88%;left:80%;background:#7ea8ff;animation-delay:1s; }
-  .star:nth-child(11) { width:3px;height:3px;top:5%;left:40%;background:#ffe066;animation-delay:2.2s; }
-  .star:nth-child(12) { width:2px;height:2px;top:50%;left:15%;background:#ff6b8a;animation-delay:0.6s; }
-  .star:nth-child(13) { width:3px;height:3px;top:35%;left:70%;background:#7ea8ff;animation-delay:1.4s; }
-  .star:nth-child(14) { width:2px;height:2px;top:92%;left:35%;background:#ffe066;animation-delay:0.9s; }
-  .star:nth-child(15) { width:4px;height:4px;top:22%;left:30%;background:#3fa65b;animation-delay:1.7s; }
-  .star:nth-child(16) { width:2px;height:2px;top:60%;left:95%;background:#ff6b8a;animation-delay:2.4s; }
-  .star:nth-child(17) { width:3px;height:3px;top:78%;left:8%;background:#ffe066;animation-delay:0.4s; }
-  .star:nth-child(18) { width:2px;height:2px;top:48%;left:50%;background:#7ea8ff;animation-delay:1.1s; }
-  .star:nth-child(19) { width:3px;height:3px;top:3%;left:65%;background:#ffe066;animation-delay:1.9s; }
-  .star:nth-child(20) { width:2px;height:2px;top:95%;left:55%;background:#ff6b8a;animation-delay:0.7s; }
-
-  @keyframes twinkle {
-    0%, 100% { opacity: 0; transform: scale(0.5); }
-    50% { opacity: 1; transform: scale(1.5); box-shadow: 0 0 6px 1px currentColor; }
-  }
-
-  /* 彩色泡泡 */
-  .bubble {
-    position: absolute; border-radius: 50%;
-    pointer-events: none; will-change: transform, opacity;
-  }
-  .bubble::after {
-    content: ''; position: absolute;
-    top: 18%; left: 22%; width: 28%; height: 22%;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.55);
-    filter: blur(1.5px);
-  }
-  .b1 { width:70px;height:70px;top:8%;left:8%;
-    background: radial-gradient(circle at 35% 35%, rgba(80,200,255,0.35), rgba(40,100,200,0.08));
-    border: 2px solid rgba(80,200,255,0.3);
-    box-shadow: 0 0 25px rgba(80,200,255,0.15);
-    animation: floatB 9s ease-in-out infinite, pulseB 3.5s ease-in-out infinite; }
-  .b2 { width:50px;height:50px;top:20%;left:82%;
-    background: radial-gradient(circle at 35% 35%, rgba(255,100,180,0.35), rgba(200,50,120,0.08));
-    border: 2px solid rgba(255,100,180,0.3);
-    box-shadow: 0 0 20px rgba(255,100,180,0.12);
-    animation: floatB 7s ease-in-out infinite 1s, pulseB 4s ease-in-out infinite 0.5s; }
-  .b3 { width:60px;height:60px;top:65%;left:75%;
-    background: radial-gradient(circle at 35% 35%, rgba(255,200,60,0.35), rgba(200,150,20,0.08));
-    border: 2px solid rgba(255,200,60,0.25);
-    box-shadow: 0 0 22px rgba(255,200,60,0.12);
-    animation: floatB 10s ease-in-out infinite 2s, pulseB 3.2s ease-in-out infinite 1s; }
-  .b4 { width:40px;height:40px;top:75%;left:12%;
-    background: radial-gradient(circle at 35% 35%, rgba(80,220,120,0.3), rgba(40,160,80,0.06));
-    border: 1.5px solid rgba(80,220,120,0.2);
-    box-shadow: 0 0 15px rgba(80,220,120,0.1);
-    animation: floatB 8s ease-in-out infinite 0.5s, pulseB 4.5s ease-in-out infinite 2s; }
-  .b5 { width:35px;height:35px;top:35%;left:88%;
-    background: radial-gradient(circle at 35% 35%, rgba(180,100,255,0.3), rgba(120,50,200,0.06));
-    border: 1.5px solid rgba(180,100,255,0.2);
-    box-shadow: 0 0 18px rgba(180,100,255,0.1);
-    animation: floatB 6.5s ease-in-out infinite 3s, pulseB 3s ease-in-out infinite 0.8s; }
-  .b6 { width:45px;height:45px;top:85%;left:50%;
-    background: radial-gradient(circle at 35% 35%, rgba(255,150,80,0.3), rgba(200,100,30,0.06));
-    border: 1.5px solid rgba(255,150,80,0.2);
-    box-shadow: 0 0 16px rgba(255,150,80,0.1);
-    animation: floatB 11s ease-in-out infinite 1.5s, pulseB 5s ease-in-out infinite 1.2s; }
-  .b7 { width:28px;height:28px;top:5%;left:55%;
-    background: radial-gradient(circle at 35% 35%, rgba(80,200,255,0.3), transparent);
-    border: 1px solid rgba(80,200,255,0.18);
-    animation: floatB 5.5s ease-in-out infinite 2.5s, pulseB 2.5s ease-in-out infinite 1.5s; }
-  .b8 { width:55px;height:55px;top:50%;left:3%;
-    background: radial-gradient(circle at 35% 35%, rgba(255,100,120,0.25), rgba(200,50,60,0.06));
-    border: 1.5px solid rgba(255,100,120,0.18);
-    box-shadow: 0 0 18px rgba(255,100,120,0.1);
-    animation: floatB 9.5s ease-in-out infinite 3.5s, pulseB 4s ease-in-out infinite 0.3s; }
-
-  @keyframes floatB {
-    0% { transform: translateY(0) translateX(0); opacity: 0.6; }
-    25% { transform: translateY(-20px) translateX(12px); opacity: 0.85; }
-    50% { transform: translateY(-45px) translateX(-8px); opacity: 0.5; }
-    75% { transform: translateY(-70px) translateX(15px); opacity: 0.35; }
-    100% { transform: translateY(-100px) translateX(0); opacity: 0; }
-  }
-  @keyframes pulseB {
-    0%, 100% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.06); filter: brightness(1.25); }
-  }
-
-  /* ========== Logo 区域 ========== */
-  .logo-area {
-    position: relative; z-index: 2;
-    display: flex; flex-direction: column;
-    align-items: center; margin-bottom: 36px;
-  }
-
-  /* 同心圆光环 portal */
-  .portal {
-    width: 120px; height: 120px;
-    position: relative; margin-bottom: 20px;
-  }
-  .portal .ring {
-    position: absolute; border-radius: 50%;
-    border: 3px solid transparent;
-    animation: portalSpin 4s linear infinite;
-  }
-  .portal .ring:nth-child(1) {
-    inset: 0;
-    border-color: rgba(80,180,255,0.5) transparent rgba(80,180,255,0.5) transparent;
-    box-shadow: 0 0 20px rgba(80,180,255,0.15);
-  }
-  .portal .ring:nth-child(2) {
-    inset: 12px;
-    border-color: transparent rgba(255,100,180,0.5) transparent rgba(255,100,180,0.5);
-    animation-direction: reverse;
-    animation-duration: 3s;
-    box-shadow: 0 0 15px rgba(255,100,180,0.1);
-  }
-  .portal .ring:nth-child(3) {
-    inset: 24px;
-    border-color: rgba(255,200,60,0.5) transparent rgba(255,200,60,0.5) transparent;
-    animation-duration: 2.5s;
-    box-shadow: 0 0 12px rgba(255,200,60,0.1);
-  }
-  .portal .core {
-    position: absolute; inset: 36px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #fff, rgba(255,220,100,0.6), rgba(255,150,50,0.2), transparent);
-    animation: coreGlow 1.5s ease-in-out infinite;
-    box-shadow: 0 0 40px rgba(255,200,80,0.3), 0 0 80px rgba(255,150,50,0.15);
-  }
-  .portal .rays {
-    position: absolute; inset: -20px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, transparent 0%, rgba(255,220,100,0.06) 10%, transparent 20%, transparent 30%, rgba(255,220,100,0.04) 40%, transparent 50%, transparent 60%, rgba(255,220,100,0.06) 70%, transparent 80%, transparent 90%, rgba(255,220,100,0.04) 100%);
-    animation: portalSpin 8s linear infinite;
-  }
-
-  @keyframes portalSpin { to { transform: rotate(360deg); } }
-  @keyframes coreGlow {
-    0%, 100% { transform: scale(1); opacity: 0.85; }
-    50% { transform: scale(1.1); opacity: 1; }
-  }
-
   .logo-text {
     font-size: 52px; font-weight: 900;
     color: #ffb830;
@@ -212,25 +58,10 @@
       0 4px 0 rgba(120,50,0,0.4);
     animation: titleGlow 2.5s ease-in-out infinite;
   }
-  .logo-sub {
-    font-size: 13px; color: #e05b5b;
-    letter-spacing: 6px; margin-top: 8px;
-    font-weight: bold;
-    text-shadow: 0 0 8px rgba(224,91,91,0.4);
-  }
-  .logo-divider {
-    width: 180px; height: 2px;
-    margin-top: 10px;
-    background: linear-gradient(90deg, transparent, #e05b5b, transparent);
-    border-radius: 1px;
-  }
-
   @keyframes titleGlow {
-    0%, 100% { text-shadow: 0 0 12px rgba(255,180,48,0.8), 0 0 35px rgba(255,150,30,0.5), 0 0 70px rgba(255,100,20,0.25), 0 2px 0 rgba(180,80,0,0.6), 0 4px 0 rgba(120,50,0,0.4); }
-    50% { text-shadow: 0 0 18px rgba(255,180,48,1), 0 0 50px rgba(255,150,30,0.7), 0 0 100px rgba(255,100,20,0.35), 0 2px 0 rgba(180,80,0,0.6), 0 4px 0 rgba(120,50,0,0.4); }
+    0%, 100% { text-shadow: 0 0 12px rgba(255,180,48,0.8), 0 0 35px rgba(255,150,30,0.5), 0 0 70px rgba(255,100,20,0.25); }
+    50% { text-shadow: 0 0 18px rgba(255,180,48,1), 0 0 50px rgba(255,150,30,0.7), 0 0 100px rgba(255,100,20,0.35); }
   }
-
-  /* ========== 进度条 ========== */
   .progress-area {
     position: relative; z-index: 2;
     display: flex; flex-direction: column;
@@ -242,7 +73,7 @@
     border: 1.5px solid rgba(120,160,255,0.15);
     border-radius: 14px;
     overflow: hidden; position: relative;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 20px rgba(79,143,220,0.08);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
   }
   .bar-fill {
     height: 100%; width: 0%;
@@ -252,204 +83,158 @@
     animation: barGrad 2.5s linear infinite;
     position: relative;
     transition: width 0.3s ease;
-    box-shadow: 0 0 15px rgba(100,150,255,0.3), 0 0 30px rgba(200,80,255,0.15);
   }
-  .bar-fill::after {
-    content: ''; position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
-    animation: barShine 1.8s ease-in-out infinite;
-  }
-  /* 宝石光标 */
-  .bar-gem {
-    position: absolute; top: 50%; right: -8px;
-    width: 16px; height: 16px;
-    transform: translateY(-50%) rotate(45deg);
-    background: linear-gradient(135deg, #fff, #3dc8ff, #c850ff);
-    border-radius: 2px;
-    box-shadow: 0 0 12px rgba(100,200,255,0.6), 0 0 25px rgba(200,100,255,0.3);
-    animation: gemPulse 1s ease-in-out infinite;
-  }
-
   @keyframes barGrad { 0%{background-position:0% 0%;} 100%{background-position:300% 0%;} }
-  @keyframes barShine { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
-  @keyframes gemPulse { 0%,100%{box-shadow:0 0 12px rgba(100,200,255,0.6),0 0 25px rgba(200,100,255,0.3);} 50%{box-shadow:0 0 18px rgba(100,200,255,0.9),0 0 40px rgba(200,100,255,0.5);} }
-
-  .load-percent {
-    margin-top: 14px; font-size: 22px;
-    color: #ffb830; font-family: "Arial Black", monospace;
-    letter-spacing: 3px; font-weight: 900;
-    text-shadow: 0 0 10px rgba(255,180,48,0.5);
-  }
-
-  /* ========== 彩色圆点加载器 ========== */
-  .dot-ring {
-    position: absolute; bottom: 60px; left: 40px;
-    width: 60px; height: 60px; z-index: 2;
-    animation: portalSpin 3s linear infinite;
-  }
-  .dot-ring .dot {
-    position: absolute; width: 8px; height: 8px;
-    border-radius: 50%; top: 50%; left: 50%;
-    margin: -4px 0 0 -4px;
-  }
-  .dot-ring .dot:nth-child(1) { background:#3dc8ff; transform:rotate(0deg) translateX(24px); }
-  .dot-ring .dot:nth-child(2) { background:#c850ff; transform:rotate(45deg) translateX(24px); }
-  .dot-ring .dot:nth-child(3) { background:#ff5090; transform:rotate(90deg) translateX(24px); }
-  .dot-ring .dot:nth-child(4) { background:#ffb830; transform:rotate(135deg) translateX(24px); }
-  .dot-ring .dot:nth-child(5) { background:#3fa65b; transform:rotate(180deg) translateX(24px); }
-  .dot-ring .dot:nth-child(6) { background:#ff6b3d; transform:rotate(225deg) translateX(24px); }
-  .dot-ring .dot:nth-child(7) { background:#e05b5b; transform:rotate(270deg) translateX(24px); }
-  .dot-ring .dot:nth-child(8) { background:#4f8fdc; transform:rotate(315deg) translateX(24px); }
-
-  /* 加载文字 */
   .load-text {
     margin-top: 14px; color: rgba(255,255,255,0.35);
     font-size: 12px; letter-spacing: 2px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .load-text .dots { display: inline-flex; gap: 4px; }
-  .load-text .dots span {
-    width: 4px; height: 4px; border-radius: 50%;
-    background: rgba(255,180,48,0.5);
-    animation: dotB 1.2s ease-in-out infinite;
-  }
-  .load-text .dots span:nth-child(2) { animation-delay: 0.2s; }
-  .load-text .dots span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes dotB { 0%,60%,100%{transform:translateY(0);opacity:0.4;} 30%{transform:translateY(-6px);opacity:1;} }
-
-  /* 底部提示 */
-  #tip {
-    position: fixed; bottom: 8px; left: 0; right: 0;
-    text-align: center;
-    color: rgba(107,111,138,0.5);
-    font-size: 12px; letter-spacing: 1px;
-    pointer-events: none; z-index: 5;
   }
 
-  /* ========== 主菜单（DOM） ========== */
+  /* ========== 主菜单：糖果海报式 ========== */
   #menu {
     position: absolute; inset: 0; z-index: 6;
     overflow: hidden;
     background:
-      radial-gradient(1100px 750px at 74% 26%, rgba(104,64,190,0.28) 0%, transparent 62%),
-      radial-gradient(950px 700px at 12% 82%, rgba(28,86,190,0.30) 0%, transparent 62%),
-      linear-gradient(158deg, #0e1334 0%, #0a0e24 52%, #0c1132 100%);
+      radial-gradient(1400px 860px at 50% -12%, rgba(126,88,255,0.22) 0%, transparent 62%),
+      radial-gradient(1000px 560px at 50% 112%, rgba(255,95,158,0.17) 0%, transparent 66%),
+      linear-gradient(180deg, #151a3f 0%, #1b2050 42%, #2a2158 74%, #322162 100%);
     transition: opacity 0.45s ease, visibility 0.45s;
   }
   #menu.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
-  /* 漂移光斑 */
-  .mblob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .38; pointer-events: none; }
-  .mb1 { width: 560px; height: 560px; right: -140px; top: -160px;
-    background: radial-gradient(circle, #7a4dd0 0%, transparent 68%);
-    animation: mdrift 19s ease-in-out infinite alternate; }
-  .mb2 { width: 500px; height: 500px; left: -180px; bottom: -200px;
-    background: radial-gradient(circle, #2a6ad0 0%, transparent 68%);
-    animation: mdrift 24s ease-in-out infinite alternate-reverse; }
-  @keyframes mdrift { from { transform: translate(0,0) scale(1); } to { transform: translate(46px,-34px) scale(1.14); } }
+  /* 地平线剪影（两层） */
+  .hill { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; pointer-events: none; }
+  .hill1 { width: 170vw; height: 52vh; bottom: -33vh;
+    background: radial-gradient(ellipse at 50% 0%, rgba(48,40,110,0.85) 0%, rgba(37,32,90,0.9) 70%); }
+  .hill2 { width: 240vw; height: 46vh; bottom: -36vh;
+    background: radial-gradient(ellipse at 50% 0%, rgba(28,25,70,0.95) 0%, rgba(20,18,52,0.95) 75%); }
 
-  /* 稀疏星点 */
-  .mstars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #cfe0ff; opacity: .35; animation: mtw 3.2s ease-in-out infinite; }
-  .mstars i:nth-child(1){left:18%;top:14%} .mstars i:nth-child(2){left:64%;top:8%;animation-delay:.7s}
-  .mstars i:nth-child(3){left:84%;top:38%;animation-delay:1.3s} .mstars i:nth-child(4){left:8%;top:46%;animation-delay:2s}
-  .mstars i:nth-child(5){left:44%;top:24%;animation-delay:.4s} .mstars i:nth-child(6){left:70%;top:70%;animation-delay:1.7s}
-  .mstars i:nth-child(7){left:30%;top:82%;animation-delay:1s} .mstars i:nth-child(8){left:52%;top:56%;animation-delay:2.4s}
-  @keyframes mtw { 0%,100%{opacity:.12} 50%{opacity:.6} }
+  /* 月晕（logo 背后） */
+  .moonglow {
+    position: absolute; left: 50%; top: 6vh; transform: translateX(-50%);
+    width: min(1100px, 76vw); height: 44vh;
+    background: radial-gradient(ellipse, rgba(180,160,255,0.16) 0%, rgba(120,100,255,0.06) 45%, transparent 70%);
+    pointer-events: none;
+  }
 
-  /* 缓升小泡泡 */
-  .mrise { position: absolute; bottom: -60px; border-radius: 50%; pointer-events: none;
-    background: radial-gradient(circle at 34% 30%, rgba(160,200,255,.34), rgba(120,160,255,.05) 62%, transparent 72%);
-    border: 1.5px solid rgba(170,200,255,.22);
+  /* 星点 */
+  .mstars i { position: absolute; width: 2.5px; height: 2.5px; border-radius: 50%; background: #e6ecff; animation: mtw 3s ease-in-out infinite; }
+  .mstars i:nth-child(1){left:8%;top:12%} .mstars i:nth-child(2){left:20%;top:26%;animation-delay:.6s}
+  .mstars i:nth-child(3){left:80%;top:10%;animation-delay:1.2s} .mstars i:nth-child(4){left:90%;top:30%;animation-delay:.3s}
+  .mstars i:nth-child(5){left:35%;top:8%;animation-delay:1.8s} .mstars i:nth-child(6){left:66%;top:22%;animation-delay:1s}
+  .mstars i:nth-child(7){left:12%;top:58%;animation-delay:2.2s} .mstars i:nth-child(8){left:88%;top:60%;animation-delay:1.5s}
+  .mstars i:nth-child(9){left:45%;top:16%;animation-delay:.9s} .mstars i:nth-child(10){left:74%;top:6%;animation-delay:2.6s}
+  @keyframes mtw { 0%,100%{opacity:.1; transform:scale(.7)} 50%{opacity:.75; transform:scale(1.25)} }
+
+  /* 上升小泡泡 */
+  .mrise { position: absolute; bottom: -70px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 34% 30%, rgba(200,220,255,.30), rgba(150,170,255,.05) 60%, transparent 72%);
+    border: 1.5px solid rgba(200,215,255,.22);
     animation: mrise linear infinite; }
-  .mr1 { width: 26px; height: 26px; left: 12%; animation-duration: 13s; }
-  .mr2 { width: 14px; height: 14px; left: 30%; animation-duration: 17s; animation-delay: 3s; }
-  .mr3 { width: 38px; height: 38px; left: 55%; animation-duration: 15s; animation-delay: 6s; }
-  .mr4 { width: 18px; height: 18px; left: 78%; animation-duration: 11s; animation-delay: 1.6s; }
-  .mr5 { width: 30px; height: 30px; left: 90%; animation-duration: 19s; animation-delay: 8s; }
-  @keyframes mrise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .7; } 88% { opacity: .5; } 100% { transform: translateY(-110vh); opacity: 0; } }
+  .mr1 { width: 24px; height: 24px; left: 8%;  animation-duration: 14s; }
+  .mr2 { width: 13px; height: 13px; left: 26%; animation-duration: 18s; animation-delay: 4s; }
+  .mr3 { width: 34px; height: 34px; left: 62%; animation-duration: 16s; animation-delay: 7s; }
+  .mr4 { width: 16px; height: 16px; left: 82%; animation-duration: 12s; animation-delay: 2s; }
+  .mr5 { width: 27px; height: 27px; left: 93%; animation-duration: 20s; animation-delay: 9s; }
+  @keyframes mrise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .65; } 88% { opacity: .45; } 100% { transform: translateY(-112vh); opacity: 0; } }
 
-  .menu-inner {
+  /* ---- 海报主体 ---- */
+  .poster {
     position: relative; z-index: 2;
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: clamp(4px, 1.6vh, 18px);
+    padding: 2.5vh 4vw 10vh;
     box-sizing: border-box;
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 7vw; gap: 4vw;
   }
 
-  /* ---- 左列：LOGO + 菜单 ---- */
-  .menu-left { max-width: 600px; }
-
-  .m-eyebrow {
-    font-size: 13px; font-weight: 700; letter-spacing: .38em;
-    color: #8fa3d8; margin-bottom: 16px;
-  }
-  .m-logo {
+  /* 糖果字母 LOGO */
+  .p-logo { text-align: center; line-height: .9; animation: logofloat 5s ease-in-out infinite; }
+  @keyframes logofloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .p-logo span {
+    display: inline-block;
     font-family: "Arial Black", "Segoe UI Black", "Microsoft YaHei", sans-serif;
-    font-weight: 900; font-size: clamp(58px, 8.4vw, 112px);
-    line-height: .96; letter-spacing: 1px;
-    animation: mfloat 5s ease-in-out infinite;
+    font-weight: 900;
+    font-size: clamp(52px, 7vw, 98px);
+    color: var(--c);
+    margin: 0 2px;
+    transform: rotate(var(--r, 0deg)) translateY(var(--y, 0px));
+    text-shadow:
+      -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 3px 3px 0 #fff,
+      -3px 0 0 #fff, 3px 0 0 #fff, 0 -3px 0 #fff, 0 3px 0 #fff,
+      0 9px 0 rgba(12,16,44,.6), 0 18px 36px rgba(0,0,0,.45);
   }
-  .m-logo span { display: block; }
-  .m-logo .l1 {
-    background: linear-gradient(180deg, #ffffff 8%, #a8d4ff 52%, #3f95f5 96%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 5px 0 rgba(18,58,138,.65)) drop-shadow(0 0 28px rgba(80,160,255,.35));
-  }
-  .m-logo .l2 {
-    background: linear-gradient(180deg, #ffffff 8%, #ffa5cd 52%, #ff4f9e 96%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 5px 0 rgba(150,30,90,.6)) drop-shadow(0 0 28px rgba(255,100,170,.32));
-  }
-  @keyframes mfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+  .p-logo .row1 span:nth-child(odd)  { --r: -3deg; --y: -3px; }
+  .p-logo .row1 span:nth-child(even) { --r: 2.5deg; --y: 3px; }
+  .p-logo .row2 span:nth-child(odd)  { --r: 2.5deg; --y: 2px; }
+  .p-logo .row2 span:nth-child(even) { --r: -3deg; --y: -2px; }
 
-  .m-tagline {
-    margin-top: 18px; font-size: 14px; letter-spacing: .22em;
-    color: #7f8db8; font-weight: 600;
+  .p-tag {
+    margin-top: 10px;
+    display: inline-block;
+    padding: 7px 22px;
+    border-radius: 999px;
+    font-size: 13px; font-weight: 700; letter-spacing: .3em;
+    color: #dfe6ff;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
-  .m-tagline b { color: #c3cff0; }
 
-  .m-list { margin-top: 40px; display: flex; flex-direction: column; gap: 13px; }
+  /* 场景（SVG） */
+  .p-scene { width: min(730px, 56vw, 60vh); margin: -0.5vh 0; }
+  .p-scene svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 26px 50px rgba(5,8,30,.55)); }
+  .scene-bob  { animation: svbob 4.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+  .scene-bob2 { animation: svbob 5.4s ease-in-out .8s infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+  .scene-bob3 { animation: svbob 5s ease-in-out 1.6s infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+  @keyframes svbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+  /* 模式卡片（横排） */
+  .p-modes { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
   .m-item {
-    --c: #4f9fff; --cg: rgba(79,159,255,.4);
-    display: flex; align-items: center; gap: 18px;
-    padding: 13px 20px; border-radius: 16px;
-    border: 1.5px solid rgba(140,170,255,.14);
-    background: rgba(15,23,50,.55);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    --c: #4f9fff; --cg: rgba(79,159,255,.4); --cd: #173e8f;
+    width: 226px; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    padding: 17px 12px 14px;
+    border-radius: 18px;
+    border: 1.5px solid rgba(160,180,255,.16);
+    background: rgba(20,26,58,.6);
+    backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
     cursor: pointer; user-select: none;
     transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
     position: relative;
   }
-  .m-item:hover { background: rgba(24,34,68,.72); transform: translateX(5px); }
+  .m-item:hover { transform: translateY(-4px); background: rgba(30,38,76,.72); }
   .m-item.sel {
-    background: rgba(30,44,88,.8);
+    background: rgba(34,44,92,.82);
     border-color: var(--c);
-    box-shadow: 0 0 26px var(--cg), inset 0 0 20px rgba(255,255,255,.03);
-    transform: translateX(10px);
+    box-shadow: 0 14px 34px rgba(0,0,10,.35), 0 0 30px var(--cg);
+    transform: translateY(-9px);
   }
   .m-item.sel::after {
-    content: ''; position: absolute; left: -17px; top: 50%; margin-top: -7px;
-    border: 8px solid transparent; border-left: 11px solid var(--c);
-    animation: nudge 1s ease-in-out infinite;
+    content: ''; position: absolute; bottom: -13px; left: 50%;
+    margin-left: -24px; width: 48px; height: 5px; border-radius: 3px;
+    background: var(--c); box-shadow: 0 0 14px var(--cg);
+    animation: barpulse 1.1s ease-in-out infinite;
   }
-  @keyframes nudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
-
+  @keyframes barpulse { 0%,100% { opacity: .65; transform: scaleX(1); } 50% { opacity: 1; transform: scaleX(.82); } }
   .m-item .badge {
-    flex: none; width: 52px; height: 52px; border-radius: 50%;
+    width: 56px; height: 56px; border-radius: 50%;
     display: grid; place-items: center;
-    background: radial-gradient(circle at 32% 28%, var(--cg) 0%, var(--c) 58%, var(--c-dark, #123) 100%);
-    box-shadow: inset 0 -5px 9px rgba(0,0,0,.3), inset 0 4px 7px rgba(255,255,255,.4), 0 5px 16px var(--cg);
+    background: radial-gradient(circle at 32% 28%, var(--cg) 0%, var(--c) 56%, var(--cd) 100%);
+    box-shadow: inset 0 -5px 9px rgba(0,0,0,.32), inset 0 4px 7px rgba(255,255,255,.42), 0 6px 18px var(--cg);
   }
-  .m-item .badge svg { width: 27px; height: 27px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
-  .m-item .tx .t { font-size: 21px; font-weight: 800; color: #edf2ff; letter-spacing: 1px; }
-  .m-item .tx .d { font-size: 13px; color: #8d9bc4; margin-top: 3px; letter-spacing: .5px; }
+  .m-item .badge svg { width: 29px; height: 29px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+  .m-item .tx { text-align: center; }
+  .m-item .tx .t { font-size: 20px; font-weight: 800; color: #eef2ff; letter-spacing: 1.5px; }
   .m-item.sel .tx .t { color: #ffe066; }
-  .m-item.sel .tx .d { color: #b9c4e8; }
+  .m-item .tx .d { font-size: 12px; color: #97a3cb; margin-top: 3px; letter-spacing: .5px; }
 
+  /* 底部提示 / 版本 */
   .m-hints {
-    position: absolute; left: 7vw; bottom: 30px; z-index: 3;
-    display: flex; align-items: center; gap: 22px;
+    position: absolute; left: 0; right: 0; bottom: 26px; z-index: 3;
+    display: flex; align-items: center; justify-content: center; gap: 22px;
     font-size: 12px; color: #7c88b4;
   }
   .m-hints .h { display: flex; align-items: center; gap: 8px; }
@@ -464,74 +249,19 @@
   }
   .m-ver { position: absolute; right: 26px; bottom: 24px; z-index: 3; font-size: 11px; color: rgba(255,255,255,.22); font-family: monospace; }
 
-  /* ---- 右列：mascot 主视觉 ---- */
-  .menu-hero { position: relative; width: 40vw; max-width: 660px; aspect-ratio: 1/1; flex: none; }
-  .orb { position: absolute; border-radius: 50%; aspect-ratio: 1 / 1; }
-  .orb::before {
-    content: ''; position: absolute; left: 16%; top: 10%;
-    width: 36%; height: 26%; border-radius: 50%;
-    background: rgba(255,255,255,.85); filter: blur(7px);
-    transform: rotate(-24deg);
-  }
-  .orb::after {
-    content: ''; position: absolute; left: 20%; right: 20%; bottom: 5%;
-    height: 9%; border-radius: 50%;
-    border-bottom: 4px solid rgba(255,255,255,.45); filter: blur(2px);
-  }
-  .hero-bob { animation: hbob 5.2s ease-in-out infinite; }
-  @keyframes hbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
-
-  .orb-main {
-    inset: 6%;
-    background: radial-gradient(circle at 33% 27%, #a6daff 0%, #4a9fff 40%, #1d55b8 78%, #123a8a 100%);
-    box-shadow:
-      inset -18px -26px 56px rgba(2,20,60,.5),
-      inset 12px 16px 38px rgba(255,255,255,.22),
-      0 34px 110px rgba(40,100,255,.38);
-    animation: hbob 5.2s ease-in-out infinite;
-  }
-  .orb-main .face { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-  .orb-shadow {
-    left: 20%; right: 20%; bottom: -4%; height: 9%;
-    border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(0,10,40,.55), transparent 70%);
-    filter: blur(8px);
+  #tip {
+    position: fixed; bottom: 8px; left: 0; right: 0;
+    text-align: center;
+    color: rgba(107,111,138,0.5);
+    font-size: 12px; letter-spacing: 1px;
+    pointer-events: none; z-index: 5;
   }
 
-  .orb-bomb {
-    width: 27%; left: 2%; top: 6%;
-    background: radial-gradient(circle at 34% 28%, #5a6b8c 0%, #26304e 55%, #141b30 100%);
-    box-shadow: inset -8px -12px 26px rgba(0,0,0,.5), inset 6px 8px 18px rgba(255,255,255,.14), 0 14px 44px rgba(10,20,60,.5);
-    animation: hbob 4.6s ease-in-out .8s infinite;
+  @media (max-width: 1180px) {
+    .p-scene { width: min(560px, 76vw); }
+    .m-item { width: min(226px, 42vw); }
   }
-  .orb-heart {
-    width: 30%; right: 0%; top: 22%;
-    background: radial-gradient(circle at 33% 27%, #ffb0d0 0%, #f0559c 45%, #b02468 100%);
-    box-shadow: inset -10px -14px 30px rgba(90,10,50,.45), inset 7px 9px 20px rgba(255,255,255,.3), 0 16px 50px rgba(240,85,156,.35);
-    animation: hbob 5.8s ease-in-out .3s infinite;
-  }
-  .orb-star {
-    width: 24%; right: 12%; bottom: 4%;
-    background: radial-gradient(circle at 33% 27%, #ffe08a 0%, #ffb830 48%, #c07708 100%);
-    box-shadow: inset -8px -12px 26px rgba(120,70,0,.4), inset 6px 8px 18px rgba(255,255,255,.35), 0 14px 44px rgba(255,184,48,.3);
-    animation: hbob 5s ease-in-out 1.4s infinite;
-  }
-  .orb-green {
-    width: 19%; left: 14%; bottom: 10%;
-    background: radial-gradient(circle at 33% 27%, #b2efb2 0%, #4dd06a 46%, #1f8a3c 100%);
-    box-shadow: inset -7px -10px 22px rgba(10,80,30,.4), inset 5px 7px 16px rgba(255,255,255,.3), 0 12px 38px rgba(77,208,106,.28);
-    animation: hbob 6s ease-in-out 2s infinite;
-  }
-  .orb .oicon { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-  @media (max-width: 1050px) {
-    .menu-hero { display: none; }
-    .menu-inner { justify-content: center; }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
@@ -546,130 +276,178 @@
 
   <div id="loader">
     <div class="loader-bg"></div>
-
-    <!-- 星光 -->
-    <div class="stars">
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div><div class="star"></div>
-      <div class="star"></div><div class="star"></div>
-    </div>
-
-    <!-- 彩色泡泡 -->
-    <div class="bubble b1"></div><div class="bubble b2"></div>
-    <div class="bubble b3"></div><div class="bubble b4"></div>
-    <div class="bubble b5"></div><div class="bubble b6"></div>
-    <div class="bubble b7"></div><div class="bubble b8"></div>
-
-    <!-- Logo -->
-    <div class="logo-area">
-      <div class="portal">
-        <div class="rays"></div>
-        <div class="ring"></div>
-        <div class="ring"></div>
-        <div class="ring"></div>
-        <div class="core"></div>
-      </div>
-      <div class="logo-text">BUBBLEBLAST</div>
-      <div class="logo-sub">POP THE BUBBLES, SPREAD THE JOY!</div>
-      <div class="logo-divider"></div>
-    </div>
-
-    <!-- 进度条 -->
     <div class="progress-area">
-      <div class="bar-track">
-        <div class="bar-fill" id="barFill"><div class="bar-gem"></div></div>
+      <div class="logo-text">BUBBLEBLAST</div>
+      <div class="bar-track" style="margin-top:36px">
+        <div class="bar-fill" id="barFill"></div>
       </div>
-      <div class="load-percent" id="loadPercent">0%</div>
-      <div class="load-text">
-        正在加载素材
-        <span class="dots"><span></span><span></span><span></span></span>
-      </div>
-    </div>
-
-    <!-- 彩色圆点加载器 -->
-    <div class="dot-ring">
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      <div class="dot"></div><div class="dot"></div>
+      <div class="load-text" id="loadPercent">0%</div>
     </div>
   </div>
+
+  <div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
 </div>
 
-<div id="tip">P1：方向键 + 空格 ｜ P2：WASD + F ｜ P 暂停 ｜ M 静音 ｜ V / 双击画面 全屏</div>
-
+<!-- ========== 主菜单（糖果海报式） ========== -->
 <div id="menu" class="hidden">
-  <div class="mblob mb1"></div><div class="mblob mb2"></div>
-  <div class="mstars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="moonglow"></div>
+  <div class="hill hill1"></div>
+  <div class="hill hill2"></div>
+  <div class="mstars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="mrise mr1"></div><div class="mrise mr2"></div><div class="mrise mr3"></div><div class="mrise mr4"></div><div class="mrise mr5"></div>
 
-  <div class="menu-inner">
-    <div class="menu-left">
-      <div class="m-eyebrow">BUBBLE BLAST</div>
-      <div class="m-logo"><span class="l1">BUBBLE</span><span class="l2">BLAST</span></div>
-      <div class="m-tagline">POP · CHAIN · <b>WIN</b></div>
+  <div class="poster">
+    <div class="p-logo">
+      <div class="row row1"><span style="--c:#4a9fff">B</span><span style="--c:#ff5f9e">U</span><span style="--c:#ffc63d">B</span><span style="--c:#4dd06a">B</span><span style="--c:#9b6bff">L</span><span style="--c:#ff8a4d">E</span></div>
+      <div class="row row2"><span style="--c:#ff5f9e">B</span><span style="--c:#4a9fff">L</span><span style="--c:#4dd06a">A</span><span style="--c:#ffc63d">S</span><span style="--c:#9b6bff">T</span></div>
+    </div>
+    <div class="p-tag">POP · CHAIN · WIN</div>
 
-      <div class="m-list">
-        <div class="m-item sel" style="--c:#4f9fff; --cg:rgba(79,159,255,.45); --c-dark:#173e8f;">
-          <div class="badge">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="14.5" r="7" fill="#1c2333"/><ellipse cx="8.6" cy="12" rx="2.4" ry="1.4" fill="rgba(255,255,255,.55)" transform="rotate(-25 8.6 12)"/><path d="M14 9 Q16.5 5.5 19.5 6.5" stroke="#caa06a" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="19.8" cy="6.4" r="1.7" fill="#ffd23d"/></svg>
-          </div>
-          <div class="tx"><div class="t">单人闯关</div><div class="d">挑战 AI 敌人 · 关卡无限</div></div>
-        </div>
-        <div class="m-item" style="--c:#ff6b6b; --cg:rgba(255,107,107,.42); --c-dark:#8f1f1f;">
-          <div class="badge">
-            <svg viewBox="0 0 24 24"><path d="M12 3 C15 7 17 9 17 13 a5 5 0 1 1 -10 0 C7 9 9 7 12 3 Z" fill="#fff"/><path d="M12 10 C13.4 12 14 13 14 14.6 a2.2 2.2 0 1 1 -4.4 0 C9.6 13 10.6 12 12 10 Z" fill="#ffb060"/></svg>
-          </div>
-          <div class="tx"><div class="t">双人对战</div><div class="d">同屏 1v1 · 先胜三回合</div></div>
-        </div>
-        <div class="m-item" style="--c:#ffd23d; --cg:rgba(255,210,61,.42); --c-dark:#8f6a08;">
-          <div class="badge">
-            <svg viewBox="0 0 24 24"><path d="M12 3 L18.5 5.8 V12 C18.5 16.6 15.8 19.6 12 21 8.2 19.6 5.5 16.6 5.5 12 V5.8 Z" fill="#fff"/><path d="M9 11.6 L11.2 14 L15.2 8.8" stroke="#b8860b" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="tx"><div class="t">道具挑战</div><div class="d">限定道具 · 极致操作</div></div>
-        </div>
-        <div class="m-item" style="--c:#4dd06a; --cg:rgba(77,208,106,.4); --c-dark:#14602c;">
-          <div class="badge">
-            <svg viewBox="0 0 24 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M4.5 8 C9 6 15 6 19.5 8"/><path d="M6.5 12.5 C10 11 14 11 17.5 12.5"/><path d="M9 17 C11 16.2 13 16.2 15 17"/></svg>
-          </div>
-          <div class="tx"><div class="t">无尽模式</div><div class="d">越战越勇 · 冲击极限</div></div>
-        </div>
-      </div>
+    <div class="p-scene">
+      <svg viewBox="0 0 900 480">
+        <defs>
+          <radialGradient id="gP1" cx="35%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#bfe0ff"/><stop offset="52%" stop-color="#4a9fff"/><stop offset="100%" stop-color="#2456b8"/>
+          </radialGradient>
+          <radialGradient id="gP2" cx="35%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#ffc4b8"/><stop offset="52%" stop-color="#e0555b"/><stop offset="100%" stop-color="#9c2f38"/>
+          </radialGradient>
+          <radialGradient id="gEn" cx="35%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#c9a4ff"/><stop offset="52%" stop-color="#8a5cc9"/><stop offset="100%" stop-color="#563689"/>
+          </radialGradient>
+          <radialGradient id="gBomb" cx="36%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#7e90b5"/><stop offset="52%" stop-color="#2a3450"/><stop offset="100%" stop-color="#12182b"/>
+          </radialGradient>
+          <radialGradient id="gPink" cx="34%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#ffb3d2"/><stop offset="55%" stop-color="#f0559c"/><stop offset="100%" stop-color="#b02468"/>
+          </radialGradient>
+          <radialGradient id="gGold" cx="34%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#ffe08a"/><stop offset="55%" stop-color="#ffb830"/><stop offset="100%" stop-color="#b87208"/>
+          </radialGradient>
+          <radialGradient id="gGreen" cx="34%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#b6f0b6"/><stop offset="55%" stop-color="#4dd06a"/><stop offset="100%" stop-color="#1d7a38"/>
+          </radialGradient>
+          <radialGradient id="gBlue" cx="34%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#a6daff"/><stop offset="55%" stop-color="#4a9fff"/><stop offset="100%" stop-color="#1d55b8"/>
+          </radialGradient>
+        </defs>
+
+        <!-- 卫星泡泡 -->
+        <g class="scene-bob">
+          <circle cx="105" cy="120" r="40" fill="url(#gPink)"/>
+          <ellipse cx="92" cy="104" rx="13" ry="8" fill="rgba(255,255,255,.85)" transform="rotate(-24 92 104)"/>
+          <path d="M92 132 C74 120 78 106 87 106 C91 106 92 109 92 111 C92 109 93 106 97 106 C106 106 110 120 92 132 Z" fill="#fff" opacity=".92"/>
+        </g>
+        <g class="scene-bob2">
+          <circle cx="798" cy="102" r="34" fill="url(#gGold)"/>
+          <ellipse cx="787" cy="89" rx="11" ry="7" fill="rgba(255,255,255,.85)" transform="rotate(-24 787 89)"/>
+          <path d="M798 84 L804.5 98 L820 99.5 L808.5 110 L812 125 L798 117 L784 125 L787.5 110 L776 99.5 L791.5 98 Z" fill="#fff" opacity=".92"/>
+        </g>
+        <g class="scene-bob3">
+          <circle cx="836" cy="318" r="30" fill="url(#gBlue)"/>
+          <ellipse cx="825" cy="306" rx="10" ry="6" fill="rgba(255,255,255,.8)" transform="rotate(-24 825 306)"/>
+        </g>
+        <g class="scene-bob2">
+          <circle cx="72" cy="330" r="24" fill="url(#gGreen)"/>
+          <ellipse cx="64" cy="321" rx="8" ry="5" fill="rgba(255,255,255,.8)" transform="rotate(-24 64 321)"/>
+        </g>
+
+        <!-- 漂浮小岛 -->
+        <g class="scene-bob2">
+          <path d="M292 396 L608 396 Q652 396 628 442 Q560 478 450 478 Q340 478 272 442 Q248 396 292 396 Z" fill="#4c3826"/>
+          <path d="M330 420 L570 420 Q590 420 578 446 Q520 466 450 466 Q380 466 322 446 Q310 420 330 420 Z" fill="#3a2a1c" opacity=".8"/>
+          <g>
+            <rect x="240" y="252" width="70" height="70" rx="12" fill="#7ec850"/><rect x="310" y="252" width="70" height="70" rx="12" fill="#74bf4a"/><rect x="380" y="252" width="70" height="70" rx="12" fill="#7ec850"/><rect x="450" y="252" width="70" height="70" rx="12" fill="#74bf4a"/><rect x="520" y="252" width="70" height="70" rx="12" fill="#7ec850"/><rect x="590" y="252" width="70" height="70" rx="12" fill="#74bf4a"/>
+            <rect x="240" y="322" width="70" height="70" rx="12" fill="#74bf4a"/><rect x="310" y="322" width="70" height="70" rx="12" fill="#7ec850"/><rect x="380" y="322" width="70" height="70" rx="12" fill="#74bf4a"/><rect x="450" y="322" width="70" height="70" rx="12" fill="#7ec850"/><rect x="520" y="322" width="70" height="70" rx="12" fill="#74bf4a"/><rect x="590" y="322" width="70" height="70" rx="12" fill="#7ec850"/>
+            <rect x="244" y="256" width="62" height="10" rx="5" fill="rgba(255,255,255,.22)"/>
+            <rect x="314" y="256" width="62" height="10" rx="5" fill="rgba(255,255,255,.16)"/>
+            <rect x="454" y="256" width="62" height="10" rx="5" fill="rgba(255,255,255,.2)"/>
+            <rect x="594" y="256" width="62" height="10" rx="5" fill="rgba(255,255,255,.16)"/>
+          </g>
+        </g>
+
+        <!-- 炸弹 -->
+        <g class="scene-bob3">
+          <circle cx="450" cy="222" r="28" fill="url(#gBomb)"/>
+          <ellipse cx="439" cy="210" rx="9" ry="5.5" fill="rgba(255,255,255,.55)" transform="rotate(-25 439 210)"/>
+          <path d="M458 200 Q470 182 486 188" stroke="#caa06a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          <circle cx="488" cy="188" r="5.5" fill="#ffd23d"/>
+          <circle cx="486" cy="186" r="2" fill="#fff"/>
+        </g>
+
+        <!-- P1：蓝方 · 红帽 -->
+        <g transform="translate(325,196)"><g class="scene-bob">
+          <circle cx="0" cy="8" r="52" fill="url(#gP1)" stroke="rgba(0,0,0,.22)" stroke-width="2.5"/>
+          <circle cx="-54" cy="24" r="11" fill="#3a7fc4"/><circle cx="54" cy="24" r="11" fill="#3a7fc4"/>
+          <ellipse cx="-20" cy="-8" rx="15" ry="18" fill="#fff"/><ellipse cx="20" cy="-8" rx="15" ry="18" fill="#fff"/>
+          <circle cx="-19" cy="-2" r="9" fill="#1e2430"/><circle cx="21" cy="-2" r="9" fill="#1e2430"/>
+          <circle cx="-22" cy="-8" r="3.5" fill="#fff"/><circle cx="18" cy="-8" r="3.5" fill="#fff"/>
+          <ellipse cx="-41" cy="16" rx="9" ry="6" fill="rgba(255,120,150,.6)"/><ellipse cx="41" cy="16" rx="9" ry="6" fill="rgba(255,120,150,.6)"/>
+          <path d="M-13 26 Q0 40 13 26" stroke="#1e2430" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          <path d="M-40 -30 A40 38 0 0 1 40 -30 Z" fill="#e05b5b"/>
+          <rect x="-47" y="-33" width="94" height="11" rx="5.5" fill="#c94a4a"/>
+          <circle cx="0" cy="-63" r="5" fill="#ffd23d"/>
+        </g></g>
+
+        <!-- P2：红方 · 黄围巾 -->
+        <g transform="translate(578,188)"><g class="scene-bob2">
+          <circle cx="0" cy="8" r="52" fill="url(#gP2)" stroke="rgba(0,0,0,.22)" stroke-width="2.5"/>
+          <circle cx="-54" cy="24" r="11" fill="#b23a42"/><circle cx="54" cy="24" r="11" fill="#b23a42"/>
+          <ellipse cx="-20" cy="-8" rx="15" ry="18" fill="#fff"/><ellipse cx="20" cy="-8" rx="15" ry="18" fill="#fff"/>
+          <circle cx="-24" cy="-3" r="9" fill="#1e2430"/><circle cx="16" cy="-3" r="9" fill="#1e2430"/>
+          <circle cx="-27" cy="-9" r="3.5" fill="#fff"/><circle cx="13" cy="-9" r="3.5" fill="#fff"/>
+          <ellipse cx="-41" cy="16" rx="9" ry="6" fill="rgba(255,255,255,.45)"/><ellipse cx="41" cy="16" rx="9" ry="6" fill="rgba(255,255,255,.45)"/>
+          <path d="M-13 26 Q0 40 13 26" stroke="#1e2430" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="0" cy="46" rx="36" ry="10" fill="#ffd23d"/>
+          <rect x="24" y="50" width="17" height="27" rx="7" fill="#ffd23d"/>
+          <path d="M28 56 L33 63 L37 55" stroke="#e8b400" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </g></g>
+
+        <!-- 紫色小怪：从岛边偷看 -->
+        <g transform="translate(706,242) scale(.78)"><g class="scene-bob3">
+          <circle cx="0" cy="8" r="52" fill="url(#gEn)" stroke="rgba(0,0,0,.22)" stroke-width="2.5"/>
+          <path d="M-38 -32 L-26 -62 L-12 -36 Z" fill="#a87fd4"/><path d="M38 -32 L26 -62 L12 -36 Z" fill="#a87fd4"/>
+          <ellipse cx="-20" cy="-8" rx="15" ry="18" fill="#fff"/><ellipse cx="20" cy="-8" rx="15" ry="18" fill="#fff"/>
+          <circle cx="-27" cy="-4" r="9" fill="#1e2430"/><circle cx="13" cy="-4" r="9" fill="#1e2430"/>
+          <circle cx="-30" cy="-10" r="3.2" fill="#fff"/><circle cx="10" cy="-10" r="3.2" fill="#fff"/>
+          <path d="M-33 -30 L-9 -22 M33 -30 L9 -22" stroke="#3d1f66" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="-40" cy="16" rx="9" ry="6" fill="rgba(255,120,150,.5)"/>
+          <path d="M-12 28 Q0 38 14 30" stroke="#1e2430" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          <path d="M4 31 L10 39 L14 29 Z" fill="#fff"/>
+        </g></g>
+      </svg>
     </div>
 
-    <div class="menu-hero">
-      <div class="orb-shadow hero-bob"></div>
-      <div class="orb orb-bomb hero-bob">
-        <svg class="oicon" viewBox="0 0 100 100"><circle cx="50" cy="58" r="26" fill="#161d33"/><ellipse cx="40" cy="48" rx="8" ry="4.6" fill="rgba(255,255,255,.5)" transform="rotate(-25 40 48)"/><path d="M60 36 Q68 22 80 26" stroke="#caa06a" stroke-width="4.5" fill="none" stroke-linecap="round"/><circle cx="82" cy="26" r="6" fill="#ffd23d"/><circle cx="80" cy="24" r="2.2" fill="#fff"/></svg>
+    <div class="p-modes">
+      <div class="m-item sel" style="--c:#4f9fff; --cg:rgba(79,159,255,.45); --cd:#173e8f;">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="14.5" r="7" fill="#1c2333"/><ellipse cx="8.6" cy="12" rx="2.4" ry="1.4" fill="rgba(255,255,255,.55)" transform="rotate(-25 8.6 12)"/><path d="M14 9 Q16.5 5.5 19.5 6.5" stroke="#caa06a" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="19.8" cy="6.4" r="1.7" fill="#ffd23d"/></svg>
+        </div>
+        <div class="tx"><div class="t">单人闯关</div><div class="d">挑战 AI 敌人 · 关卡无限</div></div>
       </div>
-      <div class="orb orb-main">
-        <svg class="face" viewBox="0 0 120 120">
-          <ellipse cx="44" cy="52" rx="12" ry="14" fill="#fff"/>
-          <ellipse cx="76" cy="52" rx="12" ry="14" fill="#fff"/>
-          <circle cx="46" cy="56" r="6" fill="#1e2430"/>
-          <circle cx="78" cy="56" r="6" fill="#1e2430"/>
-          <circle cx="43.5" cy="50" r="2.4" fill="#fff"/>
-          <circle cx="75.5" cy="50" r="2.4" fill="#fff"/>
-          <ellipse cx="27" cy="68" rx="7" ry="4.5" fill="rgba(255,120,150,.65)"/>
-          <ellipse cx="93" cy="68" rx="7" ry="4.5" fill="rgba(255,120,150,.65)"/>
-          <path d="M49 74 Q60 85 71 74" stroke="#1e2430" stroke-width="4" fill="none" stroke-linecap="round"/>
-        </svg>
+      <div class="m-item" style="--c:#ff6b6b; --cg:rgba(255,107,107,.42); --cd:#8f1f1f;">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M12 3 C15 7 17 9 17 13 a5 5 0 1 1 -10 0 C7 9 9 7 12 3 Z" fill="#fff"/><path d="M12 10 C13.4 12 14 13 14 14.6 a2.2 2.2 0 1 1 -4.4 0 C9.6 13 10.6 12 12 10 Z" fill="#ffb060"/></svg>
+        </div>
+        <div class="tx"><div class="t">双人对战</div><div class="d">同屏 1v1 · 先胜三回合</div></div>
       </div>
-      <div class="orb orb-heart hero-bob">
-        <svg class="oicon" viewBox="0 0 100 100"><path d="M50 78 C20 58 26 34 42 34 C48 34 50 38 50 42 C50 38 52 34 58 34 C74 34 80 58 50 78 Z" fill="#fff"/></svg>
+      <div class="m-item" style="--c:#ffd23d; --cg:rgba(255,210,61,.42); --cd:#8f6a08;">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M12 3 L18.5 5.8 V12 C18.5 16.6 15.8 19.6 12 21 8.2 19.6 5.5 16.6 5.5 12 V5.8 Z" fill="#fff"/><path d="M9 11.6 L11.2 14 L15.2 8.8" stroke="#b8860b" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tx"><div class="t">道具挑战</div><div class="d">限定道具 · 极致操作</div></div>
       </div>
-      <div class="orb orb-star hero-bob">
-        <svg class="oicon" viewBox="0 0 100 100"><path d="M50 22 L59 43 L82 45 L64 60 L70 83 L50 70 L30 83 L36 60 L18 45 L41 43 Z" fill="#fff"/></svg>
+      <div class="m-item" style="--c:#4dd06a; --cg:rgba(77,208,106,.4); --cd:#14602c;">
+        <div class="badge">
+          <svg viewBox="0 0 24 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M4.5 8 C9 6 15 6 19.5 8"/><path d="M6.5 12.5 C10 11 14 11 17.5 12.5"/><path d="M9 17 C11 16.2 13 16.2 15 17"/></svg>
+        </div>
+        <div class="tx"><div class="t">无尽模式</div><div class="d">越战越勇 · 冲击极限</div></div>
       </div>
-      <div class="orb orb-green hero-bob"></div>
     </div>
   </div>
 
   <div class="m-hints">
-    <span class="h"><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+    <span class="h"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 选择</span>
     <span class="h"><kbd>Enter</kbd> 确认</span>
     <span class="h"><kbd>V</kbd> 全屏</span>
     <span class="h"><kbd>M</kbd> 音效</span>

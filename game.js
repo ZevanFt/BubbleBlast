@@ -500,8 +500,8 @@ const Game = {
     if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
     if (this.state === 'menu') {
       const n = 4;
-      if (k === 'ArrowUp' || k === 'w' || k === 'W') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
-      else if (k === 'ArrowDown' || k === 's' || k === 'S') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
+      if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'W' || k === 'a' || k === 'A') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
+      else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'S' || k === 'd' || k === 'D') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
       else if (k === 'Enter' || k === ' ') this.confirmMenu();
       else if (k === '1') { this.menuIndex = 0; this.confirmMenu(); }
       else if (k === '2') { this.menuIndex = 1; this.confirmMenu(); }
@@ -1012,7 +1012,8 @@ const Game = {
       if (p.dying > 0 && !p.alive) {
         p.dying -= dt;
         if (p.dying <= 0) {
-          if (this.mode === 'single' || this.mode === 'endless') {
+          if (this.mode !== 'versus') {
+            // 单人/道具挑战/无尽：扣命重生
             p.lives--;
             if (p.lives > 0) {
               p.alive = true; p.dead = false;
@@ -1027,10 +1028,10 @@ const Game = {
           } else {
             p.dead = true;
             const winner = this.players.find(q => q !== p);
-            winner.score++;
+            if (winner) winner.score++;
             this.state = 'over';
             this.roundEndT = 0;
-            if (winner.score >= 3) { this.state = 'win'; Sfx.win(); }
+            if (winner && winner.score >= 3) { this.state = 'win'; Sfx.win(); }
             else Sfx.lose();
           }
         }
