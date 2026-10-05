@@ -16,6 +16,8 @@ Everything — characters, bombs, flames, maps and sound effects — is generate
 - **Rotating map themes** — grassland, snowfield, desert and night palettes change every level / round
 - **6 map archetypes** — scattered, wall segments, compounds, diamond ring, hourglass and snake-corridor layouts, all symmetrically generated
 - **Ice sliding** — snowfield levels spawn frozen patches: step on them and you glide until blocked; bombs can be dropped mid-slide
+- **Every theme plays differently** — hide in grass bushes (enemies lose sight of you) on grassland, wade through slowing quicksand in the desert, teleport across the field (kicked bombs fly through too!) at night
+- **Banana peel traps** — the classic gag: pick one up and it drops at your feet; anyone who steps on it slips into an uncontrollable spin
 - **Smart enemy AI** — BFS pathfinding, danger-map avoidance, and it checks for an escape route *before* dropping a bomb
 - **Procedural everything** — Q-version characters, particle effects and chiptune sound effects (WebAudio) are all drawn/synthesized in code
 - **Responsive & fullscreen** — auto-scales to any window size with retina (HiDPI) support; press `V` or double-click to go fullscreen

@@ -27,10 +27,11 @@ function setFieldSize() {
   H = ROWS * TILE + HUD_H;
 }
 
-const EMPTY = 0, STONE = 1, SOFT = 2, ICE = 3;
-const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5, ITEM_PUNCH = 6, ITEM_MIRROR = 7, ITEM_BOOST = 8, ITEM_DOUBLE = 9, ITEM_PIERCE = 10, ITEM_STORM = 11;
+const EMPTY = 0, STONE = 1, SOFT = 2, ICE = 3, BUSH = 4, SAND = 5, PORTAL = 6;
+const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD = 4, ITEM_REMOTE = 5, ITEM_PUNCH = 6, ITEM_MIRROR = 7, ITEM_BOOST = 8, ITEM_DOUBLE = 9, ITEM_PIERCE = 10, ITEM_STORM = 11, ITEM_BANANA = 12;
 
 /* ---------- 地图主题（按关卡/回合轮换） ---------- */
+const TH_HINTS = { snow: ' · 冰面会滑！', flower: ' · 草丛可藏身', desert: ' · 小心流沙', night: ' · 传送门开启' };
 const THEMES = [
   { name: '草原', g1: '#7ec850', g2: '#74bf4a', stone: '#5a6579', stoneTop: '#6d7891', deco: 'flower' },
   { name: '雪原', g1: '#d4e6f5', g2: '#c6dcef', stone: '#7f93ad', stoneTop: '#94a9c4', deco: 'snow' },
@@ -187,6 +188,8 @@ const Sfx = {
   die()     { this.tone(440, 0.5, 'sawtooth', 0.15, -330); },
   kill()    { this.tone(660, 0.12, 'square', 0.1, -200); },
   ice()     { this.tone(560, 0.14, 'sine', 0.055, -320); },
+  warp()    { this.tone(220, 0.18, 'sine', 0.09, 520); },
+  slip()    { this.tone(900, 0.28, 'sawtooth', 0.08, -700); },
   move()    { this.tone(340, 0.05, 'square', 0.06); },
   confirm() { this.tone(523, 0.09, 'square', 0.1); setTimeout(() => this.tone(784, 0.12, 'square', 0.1), 80); },
   win()     { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'square', 0.12), i * 120)); },
@@ -232,7 +235,7 @@ window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 /* ---------- 关卡生成 ---------- */
 // 6 种布局原型按关卡轮换（点对称生成保证工整），雪原关卡生成冰面滑行区
-const MAP_PATTERNS = 6;
+const MAP_PATTERNS = 9;
 function genMap(mode) {
   const m = new Array(COLS * ROWS).fill(EMPTY);
   for (let y = 0; y < ROWS; y++)
@@ -285,26 +288,60 @@ function genMap(mode) {
       } else if (pattern === 4) {
         // 双金字塔（沙漏）：上下两座三角
         if (y < cym - 1 && Math.abs(x - cxm) <= (cym - y) * 1.35 && r < 0.85) put(x, y);
-      } else {
+      } else if (pattern === 5) {
         // 蛇形走廊：偶数行横墙 + 每行一个对称缺口
         if (y % 2 === 0 && y >= 2 && y <= ROWS - 3) {
           const gap = 2 + Math.floor(Math.random() * Math.max(1, half - 2));
           if (x !== gap && x !== COLS - 1 - gap) put(x, y);
         } else if (r < 0.35) put(x, y);
+      } else if (pattern === 6) {
+        // 回字迷宫：同心方环交替
+        const ring = Math.max(Math.abs(x - cxm), Math.abs(y - cym));
+        if (ring % 2 === 1 && ring <= 5 && r < 0.92) put(x, y);
+      } else if (pattern === 7) {
+        // 四角堡垒 + 中央十字
+        const qx = Math.abs(x - cxm), qy = Math.abs(y - cym);
+        if ((qx <= 1 && qy <= 3) || (qy <= 1 && qx <= 3)) put(x, y);
+        else if (qx >= 4 && qx <= 5 && qy >= 4 && qy <= 5 && r < 0.9) put(x, y);
+      } else {
+        // 竞技场：开阔地 + 四角掩体
+        const qx = Math.abs(x - cxm), qy = Math.abs(y - cym);
+        if (r < 0.15) put(x, y);
+        else if (qx >= 3 && qx <= 4 && qy >= 3 && qy <= 4 && r < 0.85) put(x, y);
       }
     }
 
-  // 雪原主题：生成 2~4 片冰面滑行区（随机游走铺冰）
+  // 主题专属玩法地块：草原=草丛(潜行) 雪原=冰面(滑行) 沙漠=流沙(减速) 夜幕=传送门
   const thIdx = ((mode === 'versus' ? Game.round : level) - 1) % THEMES.length;
-  if (THEMES[thIdx] && THEMES[thIdx].deco === 'snow') {
-    const seeds = 2 + randi(0, 2);
+  const th = THEMES[thIdx];
+  if (typeof Game !== 'undefined') Game.portals = null;
+  const blob = (tile, seeds, steps) => {
     for (let s = 0; s < seeds; s++) {
       let sx = randi(3, COLS - 4), sy = randi(3, ROWS - 4);
-      for (let step = 0; step < 14; step++) {
-        if (m[idx(sx, sy)] === EMPTY && !safe.has(idx(sx, sy))) m[idx(sx, sy)] = ICE;
+      for (let step = 0; step < steps; step++) {
+        if (m[idx(sx, sy)] === EMPTY && !safe.has(idx(sx, sy))) m[idx(sx, sy)] = tile;
         if (Math.random() < 0.5) sx = clamp(sx + randi(-1, 1), 2, COLS - 3);
         else sy = clamp(sy + randi(-1, 1), 2, ROWS - 3);
       }
+    }
+  };
+  if (th && th.deco === 'snow') {
+    blob(ICE, 2 + randi(0, 2), 14);
+  } else if (th && th.deco === 'flower') {
+    blob(BUSH, 3 + randi(0, 2), 10);
+  } else if (th && th.deco === 'desert') {
+    blob(SAND, 3 + randi(0, 2), 12);
+  } else if (th && th.deco === 'night') {
+    const spots = [];
+    for (let y = 2; y < ROWS - 2; y++) for (let x = 2; x < COLS - 2; x++)
+      if (m[idx(x, y)] === EMPTY && !safe.has(idx(x, y))) spots.push([x, y]);
+    if (spots.length >= 2) {
+      const a = spots[randi(0, spots.length - 1)];
+      let b = a, tries = 40;
+      while (tries-- > 0 && Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) < 8)
+        b = spots[randi(0, spots.length - 1)];
+      m[idx(a[0], a[1])] = PORTAL; m[idx(b[0], b[1])] = PORTAL;
+      if (typeof Game !== 'undefined') Game.portals = [[a[0], a[1], b[0], b[1]]];
     }
   }
   if (typeof Game !== 'undefined') { Game._fieldCols = COLS; Game._fieldRows = ROWS; }
@@ -370,6 +407,7 @@ function makePlayer(tx, ty, color, name, isAI = false) {
     alive: true, dying: 0, dead: false,
     invincible: 0, anim: rand(0, 9),
     kick: false, shield: 0, remote: false,
+    portalCD: 0, hidden: false, slide: null, slideTarget: null, lastDir: null,
     punch: false, mirror: false, boost: false, double: false, pierce: false, storm: false,
     punchTimer: 0, mirrorTimer: 0, boostTimer: 0, stormTimer: 0,
     face: { x: 0, y: 1 }, moving: false,
@@ -401,7 +439,7 @@ const Game = {
   time: 0, msg: '', msgT: 0, shakeT: 0,
   respawnT: 0, roundEndT: 0,
   menuIndex: 0, hoverIndex: -1, menuRects: [],
-  confirmLockT: 0,
+  confirmLockT: 0, peels: [],
 
   reset(mode) {
     this.mode = mode;
@@ -409,7 +447,7 @@ const Game = {
     this.level = 1; this.round = 1;
     this.map = genMap(mode);
     this.theme = THEMES[0];
-    this.bombs = []; this.flames = []; this.items = []; this.particles = [];
+    this.bombs = []; this.flames = []; this.items = []; this.particles = []; this.peels = [];
     this.enemies = [];
     const p1 = makePlayer(1, 1, '#4f8fdc', 'P1');
     p1.lives = 3;
@@ -425,7 +463,7 @@ const Game = {
     // 道具挑战模式：全道具池
     if (mode === 'item-challenge') {
       this.hidden = [];
-      const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM];
+      const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM, ITEM_BANANA];
       for (let i = 0; i < this.map.length; i++) {
         if (this.map[i] === SOFT) {
           this.hidden[i] = pool[randi(0, pool.length - 1)];
@@ -446,7 +484,7 @@ const Game = {
     this.hidden = [];
     this.map = genMap(this.mode);
     this.theme = THEMES[(this.level - 1) % THEMES.length];
-    this.bombs = []; this.flames = []; this.items = []; this.particles = [];
+    this.bombs = []; this.flames = []; this.items = []; this.particles = []; this.peels = [];
     const p = this.players[0];
     p.x = cx(1); p.y = cy(1); p.tx = 1; p.ty = 1;
     p.alive = true; p.dead = false; p.invincible = 2; p.dying = 0;
@@ -456,7 +494,7 @@ const Game = {
     p.punchTimer = 0; p.mirrorTimer = 0; p.boostTimer = 0; p.stormTimer = 0;
     this.spawnEnemies();
     this.state = 'play';
-    this.showMsg(`第 ${this.level} 关 · ${this.theme.name}` + (this.theme.deco === 'snow' ? ' · 冰面会滑！' : ''));
+    this.showMsg(`第 ${this.level} 关 · ${this.theme.name}` + TH_HINTS[this.theme.deco]);
   },
 
   nextRound() {
@@ -464,7 +502,7 @@ const Game = {
     this.hidden = [];
     this.map = genMap(this.mode);
     this.theme = THEMES[(this.round - 1) % THEMES.length];
-    this.bombs = []; this.flames = []; this.items = []; this.particles = [];
+    this.bombs = []; this.flames = []; this.items = []; this.particles = []; this.peels = [];
     const spots = [[1, 1], [COLS - 2, ROWS - 2]];
     this.players.forEach((p, i) => {
       p.x = cx(spots[i][0]); p.y = cy(spots[i][1]);
@@ -477,7 +515,7 @@ const Game = {
     });
     this.spawnItemsForVersus();
     this.state = 'play';
-    this.showMsg(`第 ${this.round} 回合 · ${this.theme.name}` + (this.theme.deco === 'snow' ? ' · 冰面会滑！' : ''));
+    this.showMsg(`第 ${this.round} 回合 · ${this.theme.name}` + TH_HINTS[this.theme.deco]);
   },
 
   spawnEnemies() {
@@ -493,7 +531,7 @@ const Game = {
 
   spawnItemsForVersus() {
     // 对战模式：把部分软砖下埋道具
-    const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM];
+    const pool = [ITEM_BOMB, ITEM_FIRE, ITEM_SPEED, ITEM_KICK, ITEM_SHIELD, ITEM_REMOTE, ITEM_PUNCH, ITEM_MIRROR, ITEM_BOOST, ITEM_DOUBLE, ITEM_PIERCE, ITEM_STORM, ITEM_BANANA];
     let placed = 0;
     for (let i = 0; i < this.map.length && placed < 14; i++) {
       if (this.map[i] === SOFT && Math.random() < 0.3) {
@@ -632,7 +670,7 @@ const Game = {
   canSlideTo(b, nx, ny) {
     if (!inMap(nx, ny)) return false;
     const t = this.map[idx(nx, ny)];
-    if (t !== EMPTY && t !== ICE) return false;
+    if (t !== EMPTY && t !== ICE && t !== PORTAL) return false;
     if (this.bombs.some(o => o !== b && o.tx === nx && o.ty === ny)) return false;
     if ([...this.players, ...this.enemies].some(e => e.alive && e.tx === nx && e.ty === ny)) return false;
     return true;
@@ -810,7 +848,7 @@ const Game = {
         en.target = null;
         this.enemyDecide(en);
       } else {
-        const step = en.speed * dt;
+        const step = en.speed * dt * (this.map[idx(en.tx, en.ty)] === SAND ? 0.55 : 1);
         en.x += ddx / dist * step;
         en.y += ddy / dist * step;
         en.face.x = Math.sign(ddx); en.face.y = Math.sign(ddy);
@@ -823,7 +861,7 @@ const Game = {
     if (en.decideT <= 0) {
       en.decideT = rand(0.2, 0.4);
       const danger = buildDanger();
-      const nearPlayer = this.players.some(p => p.alive && Math.abs(p.tx - en.tx) + Math.abs(p.ty - en.ty) <= 2);
+      const nearPlayer = this.players.some(p => p.alive && !p.hidden && Math.abs(p.tx - en.tx) + Math.abs(p.ty - en.ty) <= 2);
       const nearSoft = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => inMap(en.tx+dx,en.ty+dy) && this.map[idx(en.tx+dx,en.ty+dy)] === SOFT);
       if ((nearPlayer || nearSoft) && en.bombActive < en.bombMax && !danger[idx(en.tx, en.ty)]) {
         // 先模拟：放下泡泡后自己是否有逃生路线，没有就不放
@@ -860,14 +898,14 @@ const Game = {
     const dirs = [[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy]) => {
       if (!inMap(en.tx+dx, en.ty+dy)) return false;
       const t = this.map[idx(en.tx+dx, en.ty+dy)];
-      if (t !== EMPTY) return false;
+      if (t === STONE || t === SOFT) return false;
       if (this.bombs.some(b => b.tx === en.tx+dx && b.ty === en.ty+dy)) return false;
       if (danger[idx(en.tx+dx, en.ty+dy)]) return false;
       return true;
     });
     if (!dirs.length) { en.target = null; return; }
-    // 追踪玩家：优先朝玩家方向
-    const p = this.players.find(p => p.alive);
+    // 追踪玩家：优先朝玩家方向（藏进草丛的玩家不可见）
+    const p = this.players.find(q => q.alive && !q.hidden);
     if (p && Math.random() < 0.7) {
       dirs.sort((a, b) => {
         const da = Math.abs(en.tx + a[0] - p.tx) + Math.abs(en.ty + a[1] - p.ty);
@@ -885,6 +923,12 @@ const Game = {
     if (this.msgT > 0) this.msgT -= dt;
     if (this.shakeT > 0) this.shakeT -= dt;
 
+    // 香蕉皮寿命
+    if (this.peels) {
+      for (const q of this.peels) { q.life -= dt; if (q.arm > 0) q.arm -= dt; }
+      this.peels = this.peels.filter(q => q.life > 0);
+    }
+
     // 粒子
     for (const p of this.particles) {
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -897,6 +941,8 @@ const Game = {
     // 玩家输入 / AI
     for (const p of this.players) {
       if (p.invincible > 0) p.invincible -= dt;
+      if (p.portalCD > 0) p.portalCD -= dt;
+      if (p.slipCD > 0) p.slipCD -= dt;
       if (p.shield > 0) p.shield -= dt;
       if (p.punchTimer > 0) p.punchTimer -= dt;
       if (p.mirrorTimer > 0) p.mirrorTimer -= dt;
@@ -930,6 +976,23 @@ const Game = {
           if (throwKey) this.placeBomb(p);
         }
       }
+      this.handlePortals(p);
+      // 香蕉皮：踩到 → 顺势滑倒（随机方向）
+      if (!p.slide && p.slipCD <= 0) {
+        const peel = (this.peels || []).find(q => q.tx === p.tx && q.ty === p.ty && q.arm <= 0);
+        if (peel) {
+          this.peels.splice(this.peels.indexOf(peel), 1);
+          const dirs = [[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy]) => !this.solidFor(p, p.tx+dx, p.ty+dy));
+          if (dirs.length) {
+            const [dx, dy] = dirs[randi(0, dirs.length - 1)];
+            p.slide = { x: dx, y: dy };
+            p.slideTarget = { tx: p.tx + dx, ty: p.ty + dy };
+            p.slipCD = 0.5;
+            Sfx.slip();
+          }
+        }
+      }
+      p.hidden = this.map[idx(p.tx, p.ty)] === BUSH;
     }
 
     // 敌人
@@ -952,6 +1015,16 @@ const Game = {
         if (dist <= sp) {
           b.px = gx; b.py = gy;
           b.tx = b.slideTx; b.ty = b.slideTy;
+          // 传送门：滑入的泡泡被传送过去接着滑
+          if (this.map[idx(b.tx, b.ty)] === PORTAL && this.portals) {
+            const pr = this.portals.find(q => (q[0] === b.tx && q[1] === b.ty) || (q[2] === b.tx && q[3] === b.ty));
+            if (pr) {
+              const [nxp, nyp] = (pr[0] === b.tx && pr[1] === b.ty) ? [pr[2], pr[3]] : [pr[0], pr[1]];
+              b.px = cx(nxp); b.py = cy(nyp);
+              b.tx = nxp; b.ty = nyp;
+              Sfx.warp();
+            }
+          }
           // 到达一格后判断能否继续滑
           const nx2 = b.tx + b.slide.dx, ny2 = b.ty + b.slide.dy;
           if (this.canSlideTo(b, nx2, ny2)) {
@@ -1019,11 +1092,15 @@ const Game = {
           if (it.type === ITEM_DOUBLE) p.double = true;
           if (it.type === ITEM_PIERCE) p.pierce = true;
           if (it.type === ITEM_STORM) { p.storm = true; p.stormTimer = 3; }
+          if (it.type === ITEM_BANANA) {
+            this.peels.push({ tx: p.tx, ty: p.ty, life: 22, arm: 0.8 });
+          }
           this.showMsg(p.name + [
             ' 泡泡+1!', ' 火力+1!', ' 速度+1!',
             ' 获得踢鞋！顶着泡泡把它踢飞！', ' 护盾！6 秒无敌！', ' 遥控器！泡泡满时按键引爆！',
             ' 拳风！冲击波清敌！', ' 镜子！反弹炸弹！', ' 加速！冲刺！',
             ' 双倍！一次两颗泡泡！', ' 穿透！火焰贯穿软砖！', ' 风暴！全屏清敌！',
+            ' 香蕉皮陷阱已布置！',
           ][it.type]);
         }
       }
@@ -1118,22 +1195,44 @@ const Game = {
     if (dx !== 0 && dy !== 0) { // 斜向时只保留水平（泡泡堂是四方向）
       dy = 0;
     }
+    // 流沙减速
+    const spd = p.speed * (this.map[idx(p.tx, p.ty)] === SAND ? 0.55 : 1);
     p.lastDir = { x: dx, y: dy };
     if (dx !== 0) {
       p.face.x = dx; p.face.y = 0;
       // 垂直方向自动对齐格子中线（走位手感）
       const rowC = cy(p.ty);
       const off = rowC - p.y;
-      p.y += clamp(off, -p.speed * dt * 0.8, p.speed * dt * 0.8) * (Math.abs(off) > 1 ? 1 : 0);
-      this.moveEntity(p, dx * p.speed * dt, 0, dt);
+      p.y += clamp(off, -spd * dt * 0.8, spd * dt * 0.8) * (Math.abs(off) > 1 ? 1 : 0);
+      this.moveEntity(p, dx * spd * dt, 0, dt);
     } else {
       p.face.y = dy; p.face.x = 0;
       const colC = cx(p.tx);
       const off = colC - p.x;
-      p.x += clamp(off, -p.speed * dt * 0.8, p.speed * dt * 0.8) * (Math.abs(off) > 1 ? 1 : 0);
-      this.moveEntity(p, 0, dy * p.speed * dt, dt);
+      p.x += clamp(off, -spd * dt * 0.8, spd * dt * 0.8) * (Math.abs(off) > 1 ? 1 : 0);
+      this.moveEntity(p, 0, dy * spd * dt, dt);
     }
     p.moving = true;
+  },
+
+  // 传送门：玩家踩上 portal 格 → 传到孪生格（0.6s 冷却防来回弹）
+  handlePortals(p) {
+    if (p.portalCD > 0 || !this.portals) return;
+    if (this.map[idx(p.tx, p.ty)] !== PORTAL) return;
+    const pr = this.portals.find(q => (q[0] === p.tx && q[1] === p.ty) || (q[2] === p.tx && q[3] === p.ty));
+    if (!pr) return;
+    const [nx, ny] = (pr[0] === p.tx && pr[1] === p.ty) ? [pr[2], pr[3]] : [pr[0], pr[1]];
+    for (let j = 0; j < 10; j++) {
+      this.particles.push({
+        x: cx(p.tx), y: cy(p.ty),
+        vx: rand(-70, 70), vy: rand(-90, -10),
+        life: 0.4, size: rand(2, 4), color: '#9b6bff',
+      });
+    }
+    p.x = cx(nx); p.y = cy(ny); p.tx = nx; p.ty = ny;
+    p.slide = null; p.slideTarget = null;
+    p.portalCD = 0.6;
+    Sfx.warp();
   },
 
   /* ---- 冰面滑行（雪原关卡）----
@@ -1214,10 +1313,16 @@ const Game = {
         if (t === STONE) this.drawStone(x, y);
         else if (t === SOFT) this.drawSoft(x, y);
         else if (t === ICE) this.drawIce(x, y);
+        else if (t === SAND) this.drawSand(x, y);
+        else if (t === BUSH) this.drawBushBase(x, y);
+        else if (t === PORTAL) this.drawPortal(x, y);
       }
 
     // 道具
     for (const it of this.items) this.drawItem(it);
+
+    // 香蕉皮陷阱
+    for (const q of (this.peels || [])) this.drawPeel(q);
 
     // 泡泡
     for (const b of this.bombs) this.drawBomb(b);
@@ -1229,6 +1334,17 @@ const Game = {
     const ents = [...this.enemies.filter(e => e.alive || e.dying > 0), ...this.players.filter(p => p.alive || p.dying > 0)];
     ents.sort((a, b) => a.y - b.y);
     for (const e of ents) this.drawChar(e);
+
+    // 草丛顶视图：盖在角色身上 → 站进草丛=藏身
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        if (this.map[idx(x, y)] === BUSH) this.drawBushTop(x, y);
+
+    // 香蕉皮寿命
+    if (this.peels) {
+      for (const q of this.peels) { q.life -= dt; if (q.arm > 0) q.arm -= dt; }
+      this.peels = this.peels.filter(q => q.life > 0);
+    }
 
     // 粒子
     for (const p of this.particles) {
@@ -1395,6 +1511,82 @@ const Game = {
     ctx.strokeRect(px + 1, py + 1, TILE - 2, TILE - 2);
   },
 
+  // 流沙：波纹 + 沙粒（踩上减速）
+  drawSand(x, y) {
+    const px = x * TILE, py = HUD_H + y * TILE;
+    ctx.fillStyle = (x + y) % 2 ? '#dcc58f' : '#d3ba80';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.strokeStyle = 'rgba(155,125,72,.5)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.arc(px + TILE * (0.32 + i * 0.36), py + TILE * (0.34 + i * 0.32), 7 + i * 3.5, Math.PI * 0.15, Math.PI * 1.05);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(120,95,55,.5)';
+    ctx.beginPath(); ctx.arc(px + TILE * 0.72, py + TILE * 0.28, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(px + TILE * 0.28, py + TILE * 0.72, 1.7, 0, Math.PI * 2); ctx.fill();
+  },
+
+  drawBushBase(x, y) {
+    const px = x * TILE, py = HUD_H + y * TILE;
+    ctx.fillStyle = (x + y) % 2 ? '#6db644' : '#64ab3e';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = 'rgba(28,78,18,.3)';
+    ctx.beginPath(); ctx.ellipse(px + TILE / 2, py + TILE / 2, TILE * 0.42, TILE * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+  },
+
+  // 草丛顶视图：盖在角色之上
+  drawBushTop(x, y) {
+    const px = x * TILE, py = HUD_H + y * TILE;
+    const h = this.cellHash(x, y);
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    for (let i = 0; i < 7; i++) {
+      const bx2 = px + 5 + i * 6 + (h * 5) % 3;
+      const bh2 = 17 + ((h * 97 + i * 31) % 15);
+      ctx.strokeStyle = i % 2 ? '#3e8f2e' : '#52a83a';
+      ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(bx2, py + TILE - 4);
+      ctx.quadraticCurveTo(bx2 - 3, py + TILE - 4 - bh2 * 0.6, bx2 + (i % 2 ? 4 : -4), py + TILE - 4 - bh2);
+      ctx.stroke();
+    }
+    if (h > 0.72) {
+      ctx.fillStyle = '#ff8fb0';
+      ctx.beginPath(); ctx.arc(px + TILE * 0.66, py + TILE * 0.34, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(px + TILE * 0.66, py + TILE * 0.34, 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  // 传送门：双色旋涡（成对，踩上传送）
+  drawPortal(x, y) {
+    const px = cx(x), py = cy(y);
+    const isA = this.portals && this.portals.some(q => q[0] === x && q[1] === y);
+    const col = isA ? '#5ad0ff' : '#ff7ad0';
+    const t = this.time * 2.4;
+    const g = ctx.createRadialGradient(px, py, 3, px, py, TILE * 0.62);
+    g.addColorStop(0, col + '55'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(px - TILE * 0.62, py - TILE * 0.62, TILE * 1.24, TILE * 1.24);
+    ctx.strokeStyle = col; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    for (const o of [0, Math.PI]) {
+      ctx.beginPath();
+      ctx.arc(px, py, 13, t + o, t + o + Math.PI * 1.15);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2;
+    for (const o of [Math.PI / 2, Math.PI * 1.5]) {
+      ctx.beginPath();
+      ctx.arc(px, py, 8, -t + o, -t + o + Math.PI * 0.9);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(px, py, 2.6 + Math.sin(this.time * 6) * 0.8, 0, Math.PI * 2); ctx.fill();
+  },
+
   drawStone(x, y) {
     const px = x * TILE, py = HUD_H + y * TILE;
     const th = this.theme;
@@ -1553,6 +1745,24 @@ const Game = {
     this.drawItemIcon(it.type, px, py);
   },
 
+  // 地面香蕉皮
+  drawPeel(q) {
+    const px = cx(q.tx), py = cy(q.ty) + 9;
+    ctx.save();
+    if (q.life < 3) ctx.globalAlpha = 0.4 + Math.sin(this.time * 10) * 0.3;
+    ctx.fillStyle = '#ffd23d';
+    ctx.beginPath();
+    ctx.arc(px, py, 10, Math.PI * 0.12, Math.PI * 0.88);
+    ctx.arc(px, py - 5.5, 11.5, Math.PI * 0.88, Math.PI * 0.12, true);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(180,135,10,.7)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(px, py - 1.5, 8.5, Math.PI * 0.22, Math.PI * 0.78); ctx.stroke();
+    ctx.fillStyle = '#8a6a08';
+    ctx.beginPath(); ctx.arc(px - 8, py - 3.5, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  },
+
   // 12 种道具的专属图标（画在泡泡中心，坐标为图标中心点）
   drawItemIcon(type, px, py) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1669,6 +1879,16 @@ const Game = {
         ctx.quadraticCurveTo(px, wy + 3, px + w, wy - 1);
         ctx.stroke();
       }
+    } else if (type === ITEM_BANANA) {
+      ctx.fillStyle = '#ffd23d';
+      ctx.beginPath();
+      ctx.arc(px, py + 2, 8, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.arc(px, py - 3, 9.5, Math.PI * 0.9, Math.PI * 0.1, true);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a6a08';
+      ctx.beginPath(); ctx.arc(px - 6.5, py - 4, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(180,135,10,.8)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(px, py - 1, 6.5, Math.PI * 0.25, Math.PI * 0.75); ctx.stroke();
     } else {
       // 兜底：星形
       ctx.fillStyle = '#ffd23d';
