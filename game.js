@@ -32,6 +32,28 @@ const ITEM_BOMB = 0, ITEM_FIRE = 1, ITEM_SPEED = 2, ITEM_KICK = 3, ITEM_SHIELD =
 
 /* ---------- 地图主题（按关卡/回合轮换） ---------- */
 const TH_HINTS = { snow: ' · 冰面会滑！', flower: ' · 草丛可藏身', desert: ' · 小心流沙', night: ' · 传送门开启' };
+
+/* ---------- 角色皮肤注册表（10 套） ---------- */
+const SKINS = [
+  { id: 'bao',    name: '蓝蓝', color: '#4f8fdc', acc: 'cap' },
+  { id: 'hong',   name: '红红', color: '#e05b5b', acc: 'scarf' },
+  { id: 'zijing', name: '紫晶', color: '#8a5cc9', acc: 'horns' },
+  { id: 'xiaolv', name: '小绿', color: '#3fa65b', acc: 'leaf' },
+  { id: 'chengzi',name: '橙子', color: '#c96a3f', acc: 'brow' },
+  { id: 'fendai', name: '粉黛', color: '#c93f7a', acc: 'crown' },
+  { id: 'tianlan',name: '天蓝', color: '#4f8fc9', acc: 'band' },
+  { id: 'jinbao', name: '金宝', color: '#e8a20f', acc: 'star' },
+  { id: 'aqing',  name: '阿青', color: '#22b3c9', acc: 'phones' },
+  { id: 'xueqiu', name: '雪球', color: '#9aa5c5', acc: 'bunny' },
+];
+const skinById = id => SKINS.find(k => k.id === id) || SKINS[0];
+
+/* ---------- 玩家配置（本地持久化） ---------- */
+const CFG = Object.assign(
+  { p1: 'bao', p2: 'hong', p2Cpu: false, diff: 'normal' },
+  JSON.parse(localStorage.getItem('bb_cfg') || '{}')
+);
+const saveCfg = () => { try { localStorage.setItem('bb_cfg', JSON.stringify(CFG)); } catch (e) {} };
 const THEMES = [
   { name: '草原', g1: '#7ec850', g2: '#74bf4a', stone: '#5a6579', stoneTop: '#6d7891', deco: 'flower' },
   { name: '雪原', g1: '#d4e6f5', g2: '#c6dcef', stone: '#7f93ad', stoneTop: '#94a9c4', deco: 'snow' },
@@ -136,10 +158,15 @@ cvs.addEventListener('mousemove', e => {
   cvs.style.cursor = Game.hoverIndex >= 0 ? 'pointer' : 'default';
 });
 cvs.addEventListener('click', e => {
-  if (Game.state !== 'menu') return;
-  const p = menuPosFromEvent(e);
-  const i = Game.menuRects.findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
-  if (i >= 0) { Game.menuIndex = i; Game.confirmMenu(); }
+  const rect = cvs.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (cvs.width / rect.width);
+  const py = (e.clientY - rect.top) * (cvs.height / rect.height);
+  if (Game.state === 'pause' || Game.state === 'over' || Game.state === 'win') {
+    const lx = (px - viewOffX) / viewScale;
+    const ly = (py - viewOffY) / viewScale;
+    const hit = (Game.overlayBtns || []).find(b => lx >= b.x && lx <= b.x + b.w && ly >= b.y && ly <= b.y + b.h);
+    if (hit && Game.confirmLockT <= 0) { Sfx.confirm(); Game.overlayAction(hit.action); }
+  }
 });
 fitCanvas();
 
@@ -198,28 +225,149 @@ const Sfx = {
 
 /* ---------- DOM 主菜单控制器 ---------- */
 const MenuUI = {
-  el: null, items: [],
+  el: null, items: [], page: 'title',
+  pendingMode: 0, charSlot: 1, charReturn: 'start', helpFrom: 'title',
+  skinIndex: 0, skinCards: [], previewRAF: null,
+
   init() {
     this.el = document.getElementById('menu');
     if (!this.el) return;
     this.items = [...this.el.querySelectorAll('.m-item')];
     this.items.forEach((el, i) => {
       el.addEventListener('mouseenter', () => {
-        if (Game.state !== 'menu' || Game.menuIndex === i) return;
-        Game.menuIndex = i; Sfx.move(); this.sync();
+        if (this.page === 'modes' && Game.menuIndex !== i) { Game.menuIndex = i; Sfx.move(); this.sync(); }
       });
-      el.addEventListener('click', () => {
-        if (Game.state !== 'menu') return;
-        Game.menuIndex = i; this.sync(); Game.confirmMenu();
-      });
+      el.addEventListener('click', () => { if (this.page === 'modes') this.pickMode(i); });
     });
+    const $ = id => document.getElementById(id);
+    $('btnStart').onclick = () => { Sfx.confirm(); this.showPage('modes'); };
+    $('btnHow').onclick = () => { Sfx.confirm(); this.helpFrom = 'title'; this.showPage('help'); };
+    $('btnBackModes').onclick = () => { Sfx.move(); this.showPage('title'); };
+    $('btnBackHelp').onclick = () => { Sfx.move(); this.showPage(this.helpFrom || 'title'); };
+    $('btnBackSetup').onclick = () => { Sfx.move(); this.showPage('modes'); };
+    $('btnBackChars').onclick = () => { Sfx.move(); this.backFromChars(); };
+    $('segHuman').onclick = () => this.setP2Cpu(false);
+    $('segCpu').onclick = () => this.setP2Cpu(true);
+    document.querySelectorAll('[data-diff]').forEach(b => {
+      b.onclick = () => { CFG.diff = b.dataset.diff; saveCfg(); this.syncSetup(); Sfx.move(); };
+    });
+    $('chipP1').onclick = () => { this.charSlot = 1; this.charReturn = 'setup'; Sfx.confirm(); this.showPage('chars'); };
+    $('chipP2').onclick = () => { this.charSlot = 2; this.charReturn = 'setup'; Sfx.confirm(); this.showPage('chars'); };
+    $('btnFight').onclick = () => { Game.startWithCfg('versus'); };
+    $('btnCharOk').onclick = () => this.confirmChar();
+    $('btnSound').onclick = () => { Sfx.muted = !Sfx.muted; this.syncSound(); };
+    this.buildSkinGrid();
+    this.syncSetup();
     this.sync();
   },
+
+  buildSkinGrid() {
+    const grid = document.getElementById('skinGrid');
+    grid.innerHTML = '';
+    SKINS.forEach((sk, i) => {
+      const card = document.createElement('div');
+      card.className = 'skin-card';
+      const c = document.createElement('canvas');
+      c.width = 112; c.height = 112;
+      const nm = document.createElement('div');
+      nm.className = 'snm';
+      nm.textContent = sk.name;
+      card.appendChild(c);
+      card.appendChild(nm);
+      card.onclick = () => { this.skinIndex = i; Sfx.move(); this.syncChars(); };
+      card.onmouseenter = () => { this.skinIndex = i; this.syncChars(); };
+      grid.appendChild(card);
+      const g = c.getContext('2d');
+      g.scale(2, 2);
+      g.translate(28, 40);
+      drawCharCore(g, { color: sk.color, acc: sk.acc, face: { x: 1, y: 0 }, anim: 1.2, moving: false, alive: true, shield: 0, tx: i }, 1.2);
+    });
+    this.skinCards = [...grid.children];
+  },
+
+  startPreview() {
+    this.stopPreview();
+    const c = document.getElementById('charPreview');
+    const g = c.getContext('2d');
+    const loop = () => {
+      if (this.page !== 'chars') { this.previewRAF = null; return; }
+      const sk = SKINS[this.skinIndex];
+      const now = performance.now() / 1000;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, c.width, c.height);
+      g.save();
+      g.translate(c.width / 2, c.height / 2 + 38);
+      g.scale(2.7, 2.7);
+      drawCharCore(g, { color: sk.color, acc: sk.acc, face: { x: 1, y: 0 }, anim: now, moving: true, alive: true, shield: 0, tx: 1 }, now);
+      g.restore();
+      this.previewRAF = requestAnimationFrame(loop);
+    };
+    this.previewRAF = requestAnimationFrame(loop);
+  },
+  stopPreview() {
+    if (this.previewRAF) { cancelAnimationFrame(this.previewRAF); this.previewRAF = null; }
+  },
+
+  showPage(p) {
+    this.page = p;
+    ['title', 'modes', 'setup', 'chars', 'help'].forEach(k => {
+      document.getElementById('pg-' + k).classList.toggle('hidden', k !== p);
+    });
+    if (p === 'modes') this.sync();
+    if (p === 'setup') this.syncSetup();
+    if (p === 'chars') { this.syncChars(); this.startPreview(); } else this.stopPreview();
+  },
+  show() { this.el.classList.remove('hidden'); this.showPage('title'); this.syncSound(); },
+  hide() { this.el.classList.add('hidden'); this.stopPreview(); },
+
   sync() {
     this.items.forEach((el, i) => el.classList.toggle('sel', i === Game.menuIndex));
   },
-  show() { if (this.el) { this.el.classList.remove('hidden'); this.sync(); } },
-  hide() { if (this.el) this.el.classList.add('hidden'); },
+  syncSetup() {
+    const $ = id => document.getElementById(id);
+    const s1 = skinById(CFG.p1), s2 = skinById(CFG.p2);
+    $('segHuman').classList.toggle('on', !CFG.p2Cpu);
+    $('segCpu').classList.toggle('on', CFG.p2Cpu);
+    $('rowDiff').style.display = CFG.p2Cpu ? '' : 'none';
+    document.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('on', b.dataset.diff === CFG.diff));
+    const c1 = $('chipP1'); c1.style.setProperty('--c', s1.color); c1.style.setProperty('--cd', coreShade(s1.color, -60));
+    $('nmP1').textContent = s1.name;
+    const c2 = $('chipP2'); c2.style.setProperty('--c', s2.color); c2.style.setProperty('--cd', coreShade(s2.color, -60));
+    $('nmP2').textContent = s2.name;
+  },
+  syncChars() {
+    this.skinCards.forEach((el, i) => el.classList.toggle('sel', i === this.skinIndex));
+    document.getElementById('charsTitle').textContent =
+      this.charSlot === 1 ? 'P1 选择角色' : (CFG.p2Cpu ? '人机 选择角色' : 'P2 选择角色');
+  },
+  syncSound() {
+    const btn = document.getElementById('btnSound');
+    if (!btn) return;
+    btn.classList.toggle('off', Sfx.muted);
+    document.getElementById('icoSoundOn').style.display = Sfx.muted ? 'none' : '';
+    document.getElementById('icoSoundOff').style.display = Sfx.muted ? '' : 'none';
+  },
+
+  setP2Cpu(v) { CFG.p2Cpu = v; saveCfg(); this.syncSetup(); Sfx.move(); },
+
+  pickMode(i) {
+    Sfx.confirm();
+    const modes = ['single', 'versus', 'item-challenge', 'endless'];
+    if (i === 1) { this.showPage('setup'); }
+    else { this.pendingMode = modes[i]; this.charSlot = 1; this.charReturn = 'start'; this.showPage('chars'); }
+  },
+  confirmChar() {
+    Sfx.confirm();
+    if (this.charSlot === 1) CFG.p1 = SKINS[this.skinIndex].id;
+    else CFG.p2 = SKINS[this.skinIndex].id;
+    saveCfg();
+    if (this.charReturn === 'setup') this.showPage('setup');
+    else Game.startWithCfg(this.pendingMode);
+  },
+  backFromChars() {
+    if (this.charReturn === 'setup') this.showPage('setup');
+    else this.showPage('modes');
+  },
 };
 
 /* ---------- 输入 ---------- */
@@ -248,8 +396,12 @@ function genMap(mode) {
   const safe = new Set();
   for (const [x, y] of corners) {
     safe.add(idx(x, y));
+    // 每个方向延伸 2 格，保证出生点不会被软砖封死
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
-      if (inMap(x + dx, y + dy) && m[idx(x + dx, y + dy)] !== STONE) safe.add(idx(x + dx, y + dy));
+      for (let k = 1; k <= 2; k++) {
+        const sx2 = x + dx * k, sy2 = y + dy * k;
+        if (inMap(sx2, sy2) && m[idx(sx2, sy2)] !== STONE) safe.add(idx(sx2, sy2));
+      }
   }
 
   const level = (typeof Game !== 'undefined' && Game.level) || 1;
@@ -407,7 +559,8 @@ function makePlayer(tx, ty, color, name, isAI = false) {
     alive: true, dying: 0, dead: false,
     invincible: 0, anim: rand(0, 9),
     kick: false, shield: 0, remote: false,
-    portalCD: 0, hidden: false, slide: null, slideTarget: null, lastDir: null,
+    acc: '', skinName: '', cpu: false, diff: 'normal', cpuT: 0, cpuDir: null, escapePath: null,
+    portalCD: 0, slipCD: 0, hidden: false, slide: null, slideTarget: null, lastDir: null,
     punch: false, mirror: false, boost: false, double: false, pierce: false, storm: false,
     punchTimer: 0, mirrorTimer: 0, boostTimer: 0, stormTimer: 0,
     face: { x: 0, y: 1 }, moving: false,
@@ -423,7 +576,7 @@ function makeEnemy(tx, ty, level) {
     bombActive: 0, bombMax: 1, fire: 1,
     alive: true, dying: 0,
     target: null, decideT: 0,
-    color: ['#8a5cc9', '#3fa65b', '#c96a3f', '#c93f7a', '#4f8fc9'][level % 5],
+    color: '#8a5cc9', acc: 'horns', skinName: '紫晶',
     anim: rand(0, 9), moving: false, face: { x: 0, y: 1 },
   };
 }
@@ -525,7 +678,12 @@ const Game = {
     for (let i = 0; i < n; i++) {
       const [x, y] = spots[i];
       if (this.map[idx(x, y)] === SOFT) this.map[idx(x, y)] = EMPTY;
-      this.enemies.push(makeEnemy(x, y, this.level - 1 + i));
+      const en = makeEnemy(x, y, this.level - 1 + i);
+      const used = this.players.map(q => q.color).concat(this.enemies.map(q => q.color));
+      const cand = SKINS.filter(k => !used.includes(k.color));
+      const sk = (cand.length ? cand : SKINS)[randi(0, (cand.length ? cand : SKINS).length - 1)];
+      en.color = sk.color; en.acc = sk.acc; en.skinName = sk.name;
+      this.enemies.push(en);
     }
   },
 
@@ -572,46 +730,183 @@ const Game = {
 
   onKey(k) {
     if (k === 'v' || k === 'V') toggleFullscreen();
-    if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
+    if (k === 'm' || k === 'M') { Sfx.muted = !Sfx.muted; MenuUI.syncSound(); }
     if (this.state === 'menu') {
-      const n = 4;
-      if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'W' || k === 'a' || k === 'A') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
-      else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'S' || k === 'd' || k === 'D') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
-      else if ((k === 'Enter' || k === ' ') && this.confirmLockT <= 0) this.confirmMenu();
-      else if (k === '1' && this.confirmLockT <= 0) { this.menuIndex = 0; this.confirmMenu(); }
-      else if (k === '2' && this.confirmLockT <= 0) { this.menuIndex = 1; this.confirmMenu(); }
-      else if (k === '3' && this.confirmLockT <= 0) { this.menuIndex = 2; this.confirmMenu(); }
-      else if (k === '4' && this.confirmLockT <= 0) { this.menuIndex = 3; this.confirmMenu(); }
+      if (MenuUI.page === 'title') {
+        if ((k === 'Enter' || k === ' ') && this.confirmLockT <= 0) { Sfx.confirm(); MenuUI.showPage('modes'); }
+        else if (k === 'h' || k === 'H') MenuUI.showPage('help');
+        return;
+      }
+      if (MenuUI.page === 'help') {
+        if (k === 'Enter' || k === 'Escape' || k === ' ' || k === 'Backspace') { Sfx.move(); MenuUI.showPage(MenuUI.helpFrom || 'title'); }
+        return;
+      }
+      if (MenuUI.page === 'modes') {
+        const n = 4;
+        if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'W' || k === 'a' || k === 'A') { this.menuIndex = (this.menuIndex + n - 1) % n; Sfx.move(); MenuUI.sync(); }
+        else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'S' || k === 'd' || k === 'D') { this.menuIndex = (this.menuIndex + 1) % n; Sfx.move(); MenuUI.sync(); }
+        else if ((k === 'Enter' || k === ' ') && this.confirmLockT <= 0) MenuUI.pickMode(this.menuIndex);
+        else if (k >= '1' && k <= '4' && this.confirmLockT <= 0) MenuUI.pickMode(+k - 1);
+        else if (k === 'Escape' || k === 'Backspace') { Sfx.move(); MenuUI.showPage('title'); }
+        return;
+      }
+      if (MenuUI.page === 'setup') {
+        if (k === 'Enter' && this.confirmLockT <= 0) Game.startWithCfg('versus');
+        else if (k === 'Escape' || k === 'Backspace') { Sfx.move(); MenuUI.showPage('modes'); }
+        return;
+      }
+      if (MenuUI.page === 'chars') {
+        const n = SKINS.length;
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') { MenuUI.skinIndex = (MenuUI.skinIndex + n - 1) % n; Sfx.move(); MenuUI.syncChars(); }
+        else if (k === 'ArrowRight' || k === 'd' || k === 'D') { MenuUI.skinIndex = (MenuUI.skinIndex + 1) % n; Sfx.move(); MenuUI.syncChars(); }
+        else if ((k === 'Enter' || k === ' ') && this.confirmLockT <= 0) MenuUI.confirmChar();
+        else if (k === 'Escape' || k === 'Backspace') MenuUI.backFromChars();
+        return;
+      }
       return;
     }
     if (this.state === 'play' || this.state === 'pause') {
-      if (k === 'p' || k === 'P' || k === 'Escape') {
-        this.state = this.state === 'play' ? 'pause' : 'play';
+      if (k === 'p' || k === 'P') { this.state = this.state === 'play' ? 'pause' : 'play'; return; }
+      if (k === 'Enter' && this.state === 'pause') { this.state = 'play'; return; }
+      if (k === 'Escape') {
+        if (this.state === 'pause' && this.confirmLockT <= 0) this.gotoMenu();
+        else this.state = 'pause';
+        return;
       }
     }
     if (this.state === 'over') {
-      if ((k !== 'Enter' && k !== ' ') || this.confirmLockT > 0) return;
-      if (this.mode === 'versus') this.nextRound();
-      else this.gotoMenu();
+      if (this.confirmLockT > 0) return;
+      if (k === 'Enter' || k === ' ') { this.mode === 'versus' ? this.nextRound() : this.startWithCfg(this.mode); }
+      else if (k === 'Escape') this.gotoMenu();
       return;
     }
     if (this.state === 'win') {
-      if ((k !== 'Enter' && k !== ' ') || this.confirmLockT > 0) return;
-      if (this.mode === 'single') this.nextLevel();
-      else if (this.mode === 'endless') { this.state = 'play'; this.showMsg(`第 ${this.level} 波 · 准备！`); }
-      else this.gotoMenu();
+      if (this.confirmLockT > 0) return;
+      if (k === 'Enter' || k === ' ') {
+        if (this.mode === 'single') this.nextLevel();
+        else if (this.mode === 'endless') { this.state = 'play'; this.showMsg(`第 ${this.level} 波 · 准备！`); }
+        else this.startWithCfg('versus');
+      }
+      else if (k === 'Escape') this.gotoMenu();
       return;
     }
-    if (k === 'm' || k === 'M') Sfx.muted = !Sfx.muted;
   },
 
-  confirmMenu() {
-    Sfx.confirm();
-    MenuUI.hide();
-    const modes = ['single', 'versus', 'item-challenge', 'endless'];
-    const mode = modes[this.menuIndex];
-    this.reset(mode);
+  // 结算/暂停按钮动作
+  overlayAction(a) {
+    if (a === 'resume') { this.state = 'play'; Sfx.confirm(); }
+    else if (a === 'menu') this.gotoMenu();
+    else if (a === 'retry') this.startWithCfg(this.mode);
+    else if (a === 'nextround') this.nextRound();
+    else if (a === 'nextlevel') this.nextLevel();
+    else if (a === 'rematch') this.startWithCfg('versus');
   },
+
+  // 按配置开局（应用皮肤 + 人机）
+  startWithCfg(mode) {
+    MenuUI.hide();
+    this.reset(mode);
+    const ap = (p, id) => { const sk = skinById(id); p.color = sk.color; p.acc = sk.acc; p.skinName = sk.name; };
+    ap(this.players[0], CFG.p1);
+    if (this.players[1]) {
+      ap(this.players[1], CFG.p2);
+      this.players[1].cpu = CFG.p2Cpu;
+      this.players[1].diff = CFG.diff;
+      this.players[1].name = CFG.p2Cpu ? '人机' : 'P2';
+    }
+  },
+
+  // 对战人机：直线探索 + BFS 追击 + 炸墙开路 + 逃生，难度控制反应与速度
+  cpuControl(p, dt) {
+    const df = p.diff === 'easy' ? 0.85 : p.diff === 'hard' ? 1.12 : 1;
+    p.anim += dt;
+    if (p.slide) { this.slideMove(p, dt); return; }
+    // 刚放了泡泡：严格沿预计算的逃生路径撤离
+    if (p.escapePath && p.escapePath.length) {
+      if (p.escapePath[0][0] === p.tx && p.escapePath[0][1] === p.ty) p.escapePath.shift();
+      if (p.escapePath.length) {
+        const nxt = p.escapePath[0];
+        const dx = Math.sign(nxt[0] - p.tx), dy = Math.sign(nxt[1] - p.ty);
+        if ((dx || dy) && !this.solidFor(p, p.tx + dx, p.ty + dy)) {
+          this.applyMove(p, dx, dy, dt * df);
+          this.tryStartSlide(p);
+          return;
+        }
+      }
+      p.escapePath = null;
+    }
+    const danger = buildDanger();
+    // 站在危险里：先沿逃生路径跑
+    if (danger[idx(p.tx, p.ty)]) {
+      const path = bfsPath(p.tx, p.ty, danger, (x, y) => !danger[idx(x, y)]);
+      if (path && path.length) {
+        const dx = Math.sign(path[0][0] - p.tx), dy = Math.sign(path[0][1] - p.ty);
+        if (dx || dy) { this.applyMove(p, dx, dy, dt * df); this.tryStartSlide(p); }
+        return;
+      }
+    }
+    // 决策（按难度节流）
+    p.cpuT -= dt;
+    const foe = this.players.find(q => q !== p && q.alive && !q.hidden);
+    if (p.cpuT <= 0) {
+      p.cpuT = p.diff === 'easy' ? 0.4 : p.diff === 'hard' ? 0.12 : 0.24;
+      // 贴脸：放泡 + 沿逃生路径撤离
+      if (foe && p.bombActive < p.bombMax &&
+          Math.abs(foe.tx - p.tx) + Math.abs(foe.ty - p.ty) <= p.fire + 1) {
+        const esc = this.escapeFromBlast(p, danger);
+        if (esc) {
+          this.placeBomb(p);
+          p.escapePath = esc.slice();
+          p.cpuDir = [Math.sign(esc[0][0] - p.tx), Math.sign(esc[0][1] - p.ty)];
+        }
+      }
+      // 追击：能走到就走 BFS 路径；被软砖隔断则炸墙开路，再不然直线游走
+      if (foe && !p.cpuDir) {
+        const path = bfsPath(p.tx, p.ty, danger, (x, y) => x === foe.tx && y === foe.ty);
+        if (path && path.length) {
+          p.cpuDir = [Math.sign(path[0][0] - p.tx), Math.sign(path[0][1] - p.ty)];
+        } else {
+          const bombChance = p.diff === 'easy' ? 0.25 : p.diff === 'normal' ? 0.45 : 0.7;
+          const softDirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) =>
+            inMap(p.tx + dx, p.ty + dy) && this.map[idx(p.tx + dx, p.ty + dy)] === SOFT);
+          if (softDirs.length && p.bombActive < p.bombMax && Math.random() < bombChance) {
+            const esc = this.escapeFromBlast(p, danger);
+            if (esc) {
+              this.placeBomb(p);
+              p.escapePath = esc.slice();
+              p.cpuDir = [Math.sign(esc[0][0] - p.tx), Math.sign(esc[0][1] - p.ty)];
+            }
+          }
+          if (!p.cpuDir) {
+            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) =>
+              !this.solidFor(p, p.tx + dx, p.ty + dy) && !danger[idx(p.tx + dx, p.ty + dy)]);
+            // 保持当前方向优先（直线探索），失效才换向
+            if (p.cpuDir && dirs.some(([dx, dy]) => dx === p.cpuDir[0] && dy === p.cpuDir[1])) {
+              // 保留
+            } else if (dirs.length) {
+              p.cpuDir = dirs[randi(0, dirs.length - 1)];
+            }
+          }
+        }
+      }
+    }
+    // 方向失效（撞墙/实体火焰/预测危险区）→ 清空并立即重新决策
+    if (p.cpuDir) {
+      const tx2 = p.tx + p.cpuDir[0], ty2 = p.ty + p.cpuDir[1];
+      const flameAt = this.flames.some(f => f.tx === tx2 && f.ty === ty2);
+      if (this.solidFor(p, tx2, ty2) || flameAt || danger[idx(tx2, ty2)]) {
+        p.cpuDir = null;
+        p.cpuT = 0;
+      }
+    }
+    if (p.cpuDir) {
+      this.applyMove(p, p.cpuDir[0], p.cpuDir[1], dt * df);
+      this.tryStartSlide(p);
+    } else {
+      p.moving = false;
+    }
+  },
+
 
   // 回到主菜单（显示 DOM 菜单层）
   gotoMenu() {
@@ -877,7 +1172,7 @@ const Game = {
             if (t === SOFT) break;
           }
         }
-        if (bfsPath(en.tx, en.ty, sim, (x, y) => !sim[idx(x, y)])) {
+        if (this.escapeFromBlast(en, danger)) {
           en.bombActive++;
           this.bombs.push({ tx: en.tx, ty: en.ty, timer: 2.0, range: en.fire, owner: en, pass: new Set([en]) });
           Sfx.place();
@@ -950,7 +1245,9 @@ const Game = {
       if (p.stormTimer > 0) p.stormTimer -= dt;
       if (!p.alive) continue;
       p.anim += dt;
-      if (this.mode === 'versus' && p === this.players[1]) {
+      if (this.mode === 'versus' && p === this.players[1] && p.cpu) {
+        this.cpuControl(p, dt);
+      } else if (this.mode === 'versus' && p === this.players[1]) {
         const throwKey = keys[' '] || keys['f'];
         if (p.slide) {
           this.slideMove(p, dt);
@@ -1215,6 +1512,12 @@ const Game = {
     p.moving = true;
   },
 
+  // 放泡逃生判定：只要能在爆炸前走出爆炸半径就算有路（经典炸弹人 AI 做法）
+  escapeFromBlast(p, danger) {
+    return bfsPath(p.tx, p.ty, danger, (x, y) =>
+      Math.abs(x - p.tx) + Math.abs(y - p.ty) > p.fire);
+  },
+
   // 传送门：玩家踩上 portal 格 → 传到孪生格（0.6s 冷却防来回弹）
   handlePortals(p) {
     if (p.portalCD > 0 || !this.portals) return;
@@ -1373,25 +1676,44 @@ const Game = {
     }
 
     // 遮罩状态
-    if (this.state === 'pause') this.drawOverlay('暂停', '按 P 继续');
+    if (this.state === 'pause') {
+      this.drawOverlay('暂停', '喘口气，敌人不会等你', [
+        { label: '继续 (P)', action: 'resume' },
+        { label: '回标题 (Esc)', action: 'menu' },
+      ]);
+    }
     if (this.state === 'over') {
       if (this.mode === 'versus') {
-        const winner = this.players.find(p => !p.dead);
-        const loser = this.players.find(p => p.dead);
-        this.drawOverlay(`${winner.name} 得分！`, `比分 ${this.players[0].score} : ${this.players[1].score}\n按 Enter / 空格 继续`);
+        const winner = this.players.find(p => !p.dead) || this.players[0];
+        this.drawOverlay(`${winner.name} 得分！`, `比分 ${this.players[0].score} : ${this.players[1].score}`, [
+          { label: '下一回合', action: 'nextround' },
+          { label: '回标题', action: 'menu' },
+        ]);
       } else {
         const modeName = this.mode === 'endless' ? '无尽模式' : this.mode === 'item-challenge' ? '道具挑战' : '游戏';
-        this.drawOverlay(`${modeName}结束`, `消灭敌人 ${this.players[0].score} 个 · 按 Enter / 空格 返回菜单`);
+        this.drawOverlay(`${modeName}结束`, `本局消灭敌人 ${this.players[0].score} 个`, [
+          { label: '再来一局', action: 'retry' },
+          { label: '回标题', action: 'menu' },
+        ]);
       }
     }
     if (this.state === 'win') {
       if (this.mode === 'versus') {
         const w = this.players[0].score >= 3 ? this.players[0] : this.players[1];
-        this.drawOverlay(`${w.name} 获得胜利！🎉`, `比分 ${this.players[0].score} : ${this.players[1].score} · 按 Enter / 空格 返回菜单`);
+        this.drawOverlay(`${w.name} 获得胜利！🎉`, `最终比分 ${this.players[0].score} : ${this.players[1].score}`, [
+          { label: '再来一轮', action: 'rematch' },
+          { label: '回标题', action: 'menu' },
+        ]);
       } else if (this.mode === 'endless') {
-        this.drawOverlay(`第 ${this.level} 波 通过！`, '按 Enter / 空格 进入下一波 · 越来越难！');
+        this.drawOverlay(`第 ${this.level} 波 通过！`, `当前消灭 ${this.players[0].score} 个 · 越来越难！`, [
+          { label: '下一波', action: 'nextlevel' },
+          { label: '回标题', action: 'menu' },
+        ]);
       } else {
-        this.drawOverlay(`第 ${this.level} 关 通过！`, '按 Enter / 空格 进入下一关');
+        this.drawOverlay(`第 ${this.level} 关 通过！`, `本关消灭 ${this.players[0].score} 个敌人`, [
+          { label: '下一关', action: 'nextlevel' },
+          { label: '回标题', action: 'menu' },
+        ]);
       }
     }
     ctx.restore();
@@ -1409,13 +1731,31 @@ const Game = {
     ctx.fillText(s, x, y);
   },
 
-  drawOverlay(title, sub) {
+  drawOverlay(title, sub, btns) {
     const vr = viewRect;
-    ctx.fillStyle = 'rgba(10,12,30,.55)';
+    ctx.fillStyle = 'rgba(10,12,30,.62)';
     ctx.fillRect(vr.x0, vr.y0, vr.x1 - vr.x0, vr.y1 - vr.y0);
-    this.drawOutlinedText(title, W / 2, H / 2 - 30, 42, '#ffe066');
-    sub.split('\n').forEach((s, i) =>
-      this.drawOutlinedText(s, W / 2, H / 2 + 24 + i * 34, 20, '#fff'));
+    this.drawOutlinedText(title, W / 2, H * 0.33, 46, '#ffe066');
+    (sub || '').split('\n').forEach((line, i) =>
+      this.drawOutlinedText(line, W / 2, H * 0.33 + 48 + i * 32, 20, '#fff'));
+    // 胶囊按钮
+    this.overlayBtns = [];
+    const list = btns || [];
+    const bw = Math.min(250, W * 0.28), bh = 56, gap = 30;
+    const total = list.length * bw + Math.max(0, list.length - 1) * gap;
+    list.forEach((b, i) => {
+      const x = W / 2 - total / 2 + i * (bw + gap);
+      const y = H * 0.60;
+      this.overlayBtns.push({ x, y, w: bw, h: bh, action: b.action });
+      const main = i === 0;
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      this.roundRect(x, y + 5, bw, bh, bh / 2); ctx.fill();
+      ctx.fillStyle = main ? '#ff9a2e' : '#3d8fe0';
+      this.roundRect(x, y, bw, bh, bh / 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+      this.roundRect(x, y, bw, bh, bh / 2); ctx.stroke();
+      this.drawOutlinedText(b.label, x + bw / 2, y + bh / 2 - 2, 21, '#fff');
+    });
   },
 
   // 确定性伪随机（装饰用，避免逐帧闪烁）
@@ -1915,130 +2255,17 @@ const Game = {
     ctx.globalAlpha = alpha;
     ctx.translate(px, py);
     ctx.rotate(rot);
-    const r = 16;
-    const walkT = e.anim * 11;
-    const bob = e.moving ? Math.abs(Math.sin(walkT)) * 3.5 : Math.sin(e.anim * 3) * 1.4;
-    // 影子
-    ctx.fillStyle = 'rgba(0,0,0,.25)';
-    ctx.beginPath(); ctx.ellipse(0, r + 3, 12, 4.5, 0, 0, Math.PI * 2); ctx.fill();
-    // 身体（无脚：圆滚滚的果冻身材直接落在影子上，经典泡泡堂造型）
-    const bodyY = -bob - 3;
-    if (e.shield > 0) {
-      ctx.strokeStyle = `rgba(255,220,90,${0.45 + Math.sin(this.time * 8) * 0.25})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, bodyY, r + 6 + Math.sin(this.time * 8) * 1.5, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.translate(0, bodyY);
-    // 身体（果冻感挤压）
-    const squash = e.moving ? 1 + Math.sin(walkT * 2) * 0.045 : 1 + Math.sin(e.anim * 3) * 0.02;
-    ctx.save();
-    ctx.scale(1 / squash, squash);
-    const g = ctx.createRadialGradient(-4, -6, 3, 0, 0, r + 5);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(0.3, e.color);
-    g.addColorStop(1, this.shade(e.color, -42));
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-    // 配饰（区分角色）
-    this.drawAccessory(e, r);
-    // 手手
-    ctx.fillStyle = this.shade(e.color, -14);
-    const swing = e.moving ? Math.sin(walkT) * 3.5 : 0;
-    ctx.beginPath(); ctx.arc(-r - 1.5 + swing * 0.4, 2.5 - swing, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(r + 1.5 - swing * 0.4, 2.5 + swing, 5, 0, Math.PI * 2); ctx.fill();
-    // 眼睛（看向移动方向 + 偶尔眨眼）
-    const blinking = Math.sin(e.anim * 0.9 + (e.tx || 0)) > 0.985;
-    const ex = e.face.x * 3.2, ey = e.face.y * 2.8;
-    for (const s of [-1, 1]) {
-      if (blinking) {
-        ctx.strokeStyle = '#222'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(s * 6.5 - 3.5, -5); ctx.lineTo(s * 6.5 + 3.5, -5); ctx.stroke();
-        continue;
-      }
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.ellipse(s * 6.5, -5, 5.6, 6.6, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(s * 6.5 + ex * 0.65, -5 + ey, 2.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(s * 6.5 + ex * 0.65 - 1, -6.6 + ey, 1.05, 0, Math.PI * 2); ctx.fill();
-    }
-    // 腮红
-    ctx.fillStyle = 'rgba(255,120,140,.55)';
-    ctx.beginPath(); ctx.ellipse(-10.5, 3, 3.4, 2.2, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(10.5, 3, 3.4, 2.2, 0, 0, Math.PI * 2); ctx.fill();
-    // 嘴
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 1.7; ctx.lineCap = 'round';
-    ctx.beginPath();
-    if (e.isAI) {
-      ctx.arc(0, 2.5, 3.4, Math.PI * 0.12, Math.PI * 0.88);
-      // 坏笑小尖牙
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.moveTo(2.5, 5.6); ctx.lineTo(4, 5.2); ctx.lineTo(3.2, 7.2);
-      ctx.closePath(); ctx.fill();
-    } else {
-      ctx.arc(0, 2.5, 4, Math.PI * 0.15, Math.PI * 0.85);
-    }
-    ctx.stroke();
+    drawCharCore(ctx, e, this.time);
     ctx.restore();
   },
 
-  // 角色配饰：P1 帽子 / P2 围巾 / 敌人按颜色区分（尖角·叶芽·怒眉·王冠·头带）
-  drawAccessory(e, r) {
-    if (e.name === 'P1') {
-      ctx.fillStyle = '#e05b5b';
-      ctx.beginPath(); ctx.arc(0, -r * 0.42, r * 0.78, Math.PI, 0); ctx.fill();
-      this.roundRect(-r * 0.95, -r * 0.52, r * 1.9, 4.5, 2.2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.62, r * 0.3, 2.2, -0.2, 0, Math.PI * 2); ctx.fill();
-    } else if (e.name === 'P2') {
-      ctx.fillStyle = '#ffd23d';
-      ctx.beginPath(); ctx.ellipse(0, r * 0.55, r * 0.72, 5, 0, 0, Math.PI * 2); ctx.fill();
-      this.roundRect(r * 0.42, r * 0.5, 5.5, 10, 2.5); ctx.fill();
-      ctx.strokeStyle = '#e8b400'; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(r * 0.56, r * 0.56); ctx.lineTo(r * 0.56, r * 0.78); ctx.stroke();
-    } else if (e.color === '#8a5cc9') {
-      ctx.fillStyle = '#a87fd4';
-      for (const s of [-1, 1]) {
-        ctx.beginPath();
-        ctx.moveTo(s * r * 0.55, -r * 0.62);
-        ctx.lineTo(s * r * 0.42, -r * 1.22);
-        ctx.lineTo(s * r * 0.18, -r * 0.72);
-        ctx.closePath(); ctx.fill();
-      }
-    } else if (e.color === '#3fa65b') {
-      ctx.strokeStyle = '#2d8a3e'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(0, -r * 0.85); ctx.lineTo(0, -r * 1.15); ctx.stroke();
-      ctx.fillStyle = '#3fa65b';
-      ctx.beginPath(); ctx.ellipse(4, -r * 1.18, 6, 3, -0.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(-4, -r * 1.05, 5, 2.6, 0.45, 0, Math.PI * 2); ctx.fill();
-    } else if (e.color === '#c96a3f') {
-      ctx.strokeStyle = '#7a3418'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-10, -11); ctx.lineTo(-3.5, -8.5);
-      ctx.moveTo(10, -11); ctx.lineTo(3.5, -8.5);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,230,210,0.75)'; ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(7, 6); ctx.lineTo(10.5, 10);
-      ctx.moveTo(10, 5); ctx.lineTo(13, 8.5);
-      ctx.stroke();
-    } else if (e.color === '#c93f7a') {
-      ctx.fillStyle = '#ffd23d';
-      ctx.beginPath();
-      const cyy = -r - 3;
-      ctx.moveTo(-7, cyy + 3); ctx.lineTo(-5, cyy - 3); ctx.lineTo(-2, cyy + 0.5);
-      ctx.lineTo(0, cyy - 4); ctx.lineTo(2, cyy + 0.5); ctx.lineTo(5, cyy - 3); ctx.lineTo(7, cyy + 3);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ff4757';
-      ctx.beginPath(); ctx.arc(0, cyy - 1.5, 1.4, 0, Math.PI * 2); ctx.fill();
-    } else if (e.color === '#4f8fc9') {
-      ctx.strokeStyle = '#2c5f8a'; ctx.lineWidth = 3.4;
-      ctx.beginPath(); ctx.arc(0, -2, r * 0.86, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
-    }
+  // 配饰反查：优先皮肤字段，兼容旧 name/color 调用
+  skinAccFor(e) {
+    if (e.acc) return e.acc;
+    if (e.name === 'P1') return 'cap';
+    if (e.name === 'P2') return 'scarf';
+    const sk = SKINS.find(k => k.color === e.color);
+    return sk ? sk.acc : '';
   },
 
   shade(hex, amt) {
@@ -2081,7 +2308,7 @@ const Game = {
       const [a, b] = this.players;
       this.drawOutlinedText(`P1  ${a.score}`, W * 0.38, HUD_H / 2, 30, '#4f8fdc');
       this.drawOutlinedText(`第 ${this.round} 回合`, W / 2, HUD_H / 2, 18, '#ffe066');
-      this.drawOutlinedText(`${b.score}  P2`, W * 0.62, HUD_H / 2, 30, '#e05b5b');
+      this.drawOutlinedText(`${b.score}  ${b.cpu ? '人机' : 'P2'}`, W * 0.62, HUD_H / 2, 30, '#e05b5b');
       const perkA = `💣${a.bombMax} 🔥${a.fire}` + (a.kick ? ' 🥾' : '') + (a.remote ? ' ⏱' : '') + (a.shield > 0 ? ` 🛡${Math.ceil(a.shield)}` : '');
       const perkB = `💣${b.bombMax} 🔥${b.fire}` + (b.kick ? ' 🥾' : '') + (b.remote ? ' ⏱' : '') + (b.shield > 0 ? ` 🛡${Math.ceil(b.shield)}` : '');
       this.drawOutlinedText(perkA, 16, HUD_H / 2, 18, '#9fc3ff', 'left');
@@ -2475,6 +2702,178 @@ const Game = {
 
 
 };
+
+/* ---------- 角色绘制核心（游戏与选人预览共用） ---------- */
+function coreShade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, Math.min(255, (n >> 16) + amt));
+  const g = Math.max(0, Math.min(255, ((n >> 8) & 255) + amt));
+  const b = Math.max(0, Math.min(255, (n & 255) + amt));
+  return `rgb(${r},${g},${b})`;
+}
+function coreRR(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+function drawAccCore(g, e, r) {
+  const acc = (typeof Game !== 'undefined' && Game.skinAccFor) ? Game.skinAccFor(e) : (e.acc || '');
+  if (acc === 'cap') {
+    g.fillStyle = '#e05b5b';
+    g.beginPath(); g.arc(0, -r * 0.42, r * 0.78, Math.PI, 0); g.fill();
+    coreRR(g, -r * 0.95, -r * 0.52, r * 1.9, 4.5, 2.2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.35)';
+    g.beginPath(); g.ellipse(-r * 0.3, -r * 0.62, r * 0.3, 2.2, -0.2, 0, Math.PI * 2); g.fill();
+  } else if (acc === 'scarf') {
+    g.fillStyle = '#ffd23d';
+    g.beginPath(); g.ellipse(0, r * 0.55, r * 0.72, 5, 0, 0, Math.PI * 2); g.fill();
+    coreRR(g, r * 0.42, r * 0.5, 5.5, 10, 2.5); g.fill();
+    g.strokeStyle = '#e8b400'; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(r * 0.56, r * 0.56); g.lineTo(r * 0.56, r * 0.78); g.stroke();
+  } else if (acc === 'horns') {
+    g.fillStyle = '#a87fd4';
+    for (const sg of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(sg * r * 0.55, -r * 0.62);
+      g.lineTo(sg * r * 0.42, -r * 1.22);
+      g.lineTo(sg * r * 0.18, -r * 0.72);
+      g.closePath(); g.fill();
+    }
+  } else if (acc === 'leaf') {
+    g.strokeStyle = '#2d8a3e'; g.lineWidth = 2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, -r * 0.85); g.lineTo(0, -r * 1.15); g.stroke();
+    g.fillStyle = '#3fa65b';
+    g.beginPath(); g.ellipse(4, -r * 1.18, 6, 3, -0.5, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(-4, -r * 1.05, 5, 2.6, 0.45, 0, Math.PI * 2); g.fill();
+  } else if (acc === 'brow') {
+    g.strokeStyle = '#7a3418'; g.lineWidth = 2.4; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-10, -11); g.lineTo(-3.5, -8.5);
+    g.moveTo(10, -11); g.lineTo(3.5, -8.5);
+    g.stroke();
+    g.strokeStyle = 'rgba(255,230,210,0.75)'; g.lineWidth = 1.6;
+    g.beginPath();
+    g.moveTo(7, 6); g.lineTo(10.5, 10);
+    g.moveTo(10, 5); g.lineTo(13, 8.5);
+    g.stroke();
+  } else if (acc === 'crown') {
+    g.fillStyle = '#ffd23d';
+    g.beginPath();
+    const cy2 = -r - 3;
+    g.moveTo(-7, cy2 + 3); g.lineTo(-5, cy2 - 3); g.lineTo(-2, cy2 + 0.5);
+    g.lineTo(0, cy2 - 4); g.lineTo(2, cy2 + 0.5); g.lineTo(5, cy2 - 3); g.lineTo(7, cy2 + 3);
+    g.closePath(); g.fill();
+    g.fillStyle = '#ff4757';
+    g.beginPath(); g.arc(0, cy2 - 1.5, 1.4, 0, Math.PI * 2); g.fill();
+  } else if (acc === 'band') {
+    g.strokeStyle = '#2c5f8a'; g.lineWidth = 3.4;
+    g.beginPath(); g.arc(0, -2, r * 0.86, Math.PI * 1.12, Math.PI * 1.88); g.stroke();
+  } else if (acc === 'star') {
+    g.fillStyle = '#fff2b0';
+    g.save();
+    g.translate(r * 0.55, -r * 1.02);
+    g.rotate(0.3);
+    g.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const a2 = k * Math.PI / 5 - Math.PI / 2;
+      const rr2 = k % 2 ? 2.6 : 6;
+      const sx2 = Math.cos(a2) * rr2, sy2 = Math.sin(a2) * rr2;
+      k ? g.lineTo(sx2, sy2) : g.moveTo(sx2, sy2);
+    }
+    g.closePath(); g.fill();
+    g.restore();
+  } else if (acc === 'phones') {
+    g.strokeStyle = '#37415f'; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath(); g.arc(0, -r * 0.18, r * 0.98, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+    g.fillStyle = '#37415f';
+    for (const sg of [-1, 1]) {
+      coreRR(g, sg * r - 5.5, -r * 0.28, 11, 15, 5); g.fill();
+    }
+    g.fillStyle = '#5ad0ff';
+    for (const sg of [-1, 1]) {
+      g.beginPath(); g.arc(sg * r, -r * 0.28 + 7.5, 3.2, 0, Math.PI * 2); g.fill();
+    }
+  } else if (acc === 'bunny') {
+    g.fillStyle = coreShade(e.color, -14);
+    for (const sg of [-1, 1]) {
+      g.beginPath(); g.ellipse(sg * r * 0.42, -r * 1.32, r * 0.24, r * 0.62, sg * 0.16, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffc4d0';
+      g.beginPath(); g.ellipse(sg * r * 0.42, -r * 1.28, r * 0.11, r * 0.4, sg * 0.16, 0, Math.PI * 2); g.fill();
+      g.fillStyle = coreShade(e.color, -14);
+    }
+  }
+}
+function drawCharCore(g, e, time) {
+  const r = 16;
+  const walkT = e.anim * 11;
+  const bob = e.moving ? Math.abs(Math.sin(walkT)) * 3.5 : Math.sin(e.anim * 3) * 1.4;
+  // 影子
+  g.fillStyle = 'rgba(0,0,0,.25)';
+  g.beginPath(); g.ellipse(0, r + 3, 12, 4.5, 0, 0, Math.PI * 2); g.fill();
+  const bodyY = -bob - 3;
+  if (e.shield > 0) {
+    g.strokeStyle = `rgba(255,220,90,${0.45 + Math.sin(time * 8) * 0.25})`;
+    g.lineWidth = 3;
+    g.beginPath(); g.arc(0, bodyY, r + 6 + Math.sin(time * 8) * 1.5, 0, Math.PI * 2); g.stroke();
+  }
+  g.translate(0, bodyY);
+  // 身体（果冻感挤压）
+  const squash = e.moving ? 1 + Math.sin(walkT * 2) * 0.045 : 1 + Math.sin(e.anim * 3) * 0.02;
+  g.save();
+  g.scale(1 / squash, squash);
+  const g2 = g.createRadialGradient(-4, -6, 3, 0, 0, r + 5);
+  g2.addColorStop(0, '#ffffff');
+  g2.addColorStop(0.3, e.color);
+  g2.addColorStop(1, coreShade(e.color, -42));
+  g.fillStyle = g2;
+  g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 2;
+  g.stroke();
+  g.restore();
+  drawAccCore(g, e, r);
+  // 手手
+  g.fillStyle = coreShade(e.color, -14);
+  const swing = e.moving ? Math.sin(walkT) * 3.5 : 0;
+  g.beginPath(); g.arc(-r - 1.5 + swing * 0.4, 2.5 - swing, 5, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(r + 1.5 - swing * 0.4, 2.5 + swing, 5, 0, Math.PI * 2); g.fill();
+  // 眼睛（看向移动方向 + 偶尔眨眼）
+  const blinking = Math.sin(e.anim * 0.9 + (e.tx || 0)) > 0.985;
+  const ex = e.face.x * 3.2, ey = e.face.y * 2.8;
+  for (const sg of [-1, 1]) {
+    if (blinking) {
+      g.strokeStyle = '#222'; g.lineWidth = 1.8; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(sg * 6.5 - 3.5, -5); g.lineTo(sg * 6.5 + 3.5, -5); g.stroke();
+      continue;
+    }
+    g.fillStyle = '#fff';
+    g.beginPath(); g.ellipse(sg * 6.5, -5, 5.6, 6.6, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#222';
+    g.beginPath(); g.arc(sg * 6.5 + ex * 0.65, -5 + ey, 2.7, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(sg * 6.5 + ex * 0.65 - 1, -6.6 + ey, 1.05, 0, Math.PI * 2); g.fill();
+  }
+  // 腮红
+  g.fillStyle = 'rgba(255,120,140,.55)';
+  g.beginPath(); g.ellipse(-10.5, 3, 3.4, 2.2, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(10.5, 3, 3.4, 2.2, 0, 0, Math.PI * 2); g.fill();
+  // 嘴
+  g.strokeStyle = '#222'; g.lineWidth = 1.7; g.lineCap = 'round';
+  g.beginPath();
+  if (e.isAI) {
+    g.arc(0, 2.5, 3.4, Math.PI * 0.12, Math.PI * 0.88);
+    g.fillStyle = '#fff';
+    g.beginPath();
+    g.moveTo(2.5, 5.6); g.lineTo(4, 5.2); g.lineTo(3.2, 7.2);
+    g.closePath(); g.fill();
+  } else {
+    g.arc(0, 2.5, 4, Math.PI * 0.15, Math.PI * 0.85);
+  }
+  g.stroke();
+}
 
 /* ---------- 主循环 ---------- */
 let last = performance.now();
