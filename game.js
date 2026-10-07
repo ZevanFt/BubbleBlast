@@ -1754,7 +1754,7 @@ const Game = {
       this.roundRect(x, y, bw, bh, bh / 2); ctx.fill();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
       this.roundRect(x, y, bw, bh, bh / 2); ctx.stroke();
-      this.drawOutlinedText(b.label, x + bw / 2, y + bh / 2 - 2, 21, '#fff');
+      this.drawOutlinedText(b.label, x + bw / 2, y + (bh + 5) / 2 + 1, 21, '#fff');
     });
   },
 
